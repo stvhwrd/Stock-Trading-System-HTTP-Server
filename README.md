@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/stvhwrd/SENG-468-HTTP-Server.svg?token=pkeb5Zss7eZT4vjxYMRQ&branch=master)](https://travis-ci.com/stvhwrd/SENG-468-HTTP-Server)
+
 # SENG 468 HTTP Server
 
 The HTTP server component of the day trading system designed and built for SENG 468 at UVic

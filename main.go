@@ -9,13 +9,13 @@ import (
 	"os"
 	"strconv"
 
-	commonlib "../SENG-468-Common-Lib"
+	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
 
 // ServerState holds information about the server's state and configuration
 type ServerState struct {
 	dbPort   int
-	tsPort   int
+	txPort   int
 	httpPort int
 }
 
@@ -24,12 +24,12 @@ var serverState = ServerState{}
 func init() {
 	// Parse and process CLI flags
 	flag.IntVar(&serverState.dbPort, "dbport", -1, "[REQUIRED] the port on which the DATABASE server is running, eg. --dbport=8080")
-	flag.IntVar(&serverState.httpPort, "httpport", 8084, "[optional -- default is port 8084] the port on which *this* HTTP server is running, eg. --httpport=8084")
-	flag.IntVar(&serverState.tsPort, "tsport", -1, "[REQUIRED] the port on which the TRANSACTION server is running, eg. --tsport=8082")
+	flag.IntVar(&serverState.httpPort, "httpport", 80, "[optional -- default is port 80] the port on which *this* HTTP server is running, eg. --httpport=80")
+	flag.IntVar(&serverState.txPort, "txport", -1, "[REQUIRED] the port on which the TRANSACTION server is running, eg. --txport=8082")
 	flag.Parse()
 
 	// Force flags as required
-	if serverState.dbPort == -1 || serverState.tsPort == -1 {
+	if serverState.dbPort == -1 || serverState.txPort == -1 {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -85,56 +85,56 @@ func processCommands(responseWriter http.ResponseWriter, originalResponse []byte
 			fmt.Println("Cannot add negative Amount")
 		} else {
 			fmt.Println("Routed AddCommand to Transaction server.")
-			// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+			// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 		}
 	case commonlib.QuoteCommand:
 		fmt.Println("Routed QuoteCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.BuyCommand:
 		fmt.Println("Routed BuyCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.CommitBuyCommand:
 		fmt.Println("Routed CommitBuyCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.CancelBuyCommand:
 		fmt.Println("Routed CancelBuyCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.SellCommand:
 		fmt.Println("Routed SellCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.CommitSellCommand:
 		fmt.Println("Routed CommitSellCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.CancelSellCommand:
 		fmt.Println("Routed CancelSellCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.SetBuyAmountCommand:
 		fmt.Println("Routed SetBuyAmountCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.CancelSetBuyCommand:
 		fmt.Println("Routed CancelSetBuyCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.SetBuyTriggerCommand:
 		fmt.Println("Routed SetBuyTriggerCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.SetSellAmountCommand:
 		fmt.Println("Routed SetSellAmountCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.SetSellTriggerCommand:
 		fmt.Println("Routed SetSellTriggerCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.CancelSetSellCommand:
 		fmt.Println("Routed CancelSetSellCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.DumplogCommand:
 		fmt.Println("Routed DumplogCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.DumplogAllCommand:
 		fmt.Println("Routed DumplogAllCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	case commonlib.DisplaySummaryCommand:
 		fmt.Println("Routed DisplaySummaryCommand to Transaction server.")
-		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.tsPort, originalResponse)
+		// reply, err = commonlib.SendCommand("POST", "application/json", serverState.txPort, originalResponse)
 	default:
 		fmt.Println("You sent the wrong command id who are you trying to fool MTFK")
 	}

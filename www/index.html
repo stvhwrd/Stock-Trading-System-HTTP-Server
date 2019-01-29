@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.0/build/pure-min.css" integrity="sha384-nn4HPE8lTHyVtfCBi5yW9d20FjT8BJwUXyWZT9InLYax14RDjBj46LmSztkmNP9w"
+        crossorigin="anonymous">
+    <script type="text/javascript" src="userInterface.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <div style="width:100%;text-align:center;">
+        <form class="pure-form pure-form-aligned" method="POST" action="/" onsubmit="return onSubmit(this)">
+            <fieldset>
+                <div class="pure-control-group">
+                    <h1 style="width:100%;text-align:center;">User Input</h1>
+
+                    <label for="command">
+                        <h2>Command</h2>
+                    </label>
+                    <select name="command">
+                        <option value="" disabled="disabled" selected="selected">Choose a command</option>
+                        <option value="ADD">ADD</option>
+                        <option value="QUOTE">QUOTE</option>
+                        <option value="BUY">BUY</option>
+                        <option value="COMMIT_BUY">COMMIT_BUY</option>
+                        <option value="CANCEL_BUY">CANCEL_BUY</option>
+                        <option value="SELL">SELL</option>
+                        <option value="COMMIT_SELL">COMMIT_SELL</option>
+                        <option value="CANCEL_SELL">CANCEL_SELL</option>
+                        <option value="SET_BUY_AMOUNT">SET_BUY_AMOUNT</option>
+                        <option value="CANCEL_SET_BUY">CANCEL_SET_BUY</option>
+                        <option value="SET_BUY_TRIGGER">SET_BUY_TRIGGER</option>
+                        <option value="SET_SELL_AMOUNT">SET_SELL_AMOUNT</option>
+                        <option value="SET_SELL_TRIGGER">SET_SELL_TRIGGER</option>
+                        <option value="CANCEL_SET_SELL">CANCEL_SET_SELL</option>
+                        <option value="DUMPLOG">DUMPLOG</option>
+                        <option value="DUMPLOG">DUMPLOG</option>
+                        <option value="DISPLAY_SUMMARY">DISPLAY_SUMMARY</option>
+                        <option value="VERIFY">VERIFY</option>
+                        <option value="VERIFY_RESULT">VERIFY_RESULT</option>
+                    </select>
+                </div>
+
+                <div class="pure-control-group">
+                    <label for="userid">
+                        <h2>UserId</h2>
+                    </label>
+                    <input name="userid" type="text" placeholder="userID">
+                </div>
+
+                <div class="pure-control-group">
+                    <label for="stockSymbol">
+                        <h2>StockSymbol</h2>
+                    </label>
+                    <input name="stockSymbol" type="text" placeholder="stockSymbol">
+                </div>
+
+                <div class="pure-control-group">
+                    <label for="amount">
+                        <h2>Amount</h2>
+                    </label>
+                    <input name="amount" type="text" placeholder="$">
+                </div>
+
+                <div class="pure-controls">
+                    <button type="submit" class="pure-button pure-button-primary">Submit</button>
+                </div>
+            </fieldset>
+        </form>
+        <br>
+    </div>
+
+    <hr>
+
+    <div>
+        <h1 style="width:100%;text-align:center;">FYI: Commands and Parameters</h1>
+        <table class="pure-table pure-table-bordered">
+            <thead>
+                <tr>
+                    <th>Command</th>
+                    <th>Parameters</th>
+                    <th>Purpose</th>
+                    <th>Pre-conditions</th>
+                    <th>Post-Conditions</th>
+                    <th>Example</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ADD</td>
+                    <td>userId, amount</td>
+                    <td>Add the given amount of money to the user's account</td>
+                    <td>none</td>
+                    <td>the user's account is increased by the amount of money specified</td>
+                    <td>ADD,jsmith,200.00</td>
+                </tr>
+
+                <tr>
+                    <td>QUOTE</td>
+                    <td>userId,stockSymbol</td>
+                    <td>Get the current quote for the stock for the specified user</td>
+                    <td>none</td>
+                    <td>the current price of the specified stock is displayed to the user</td>
+                    <td>QUOTE,jsmith,ABC</td>
+                </tr>
+
+                <tr>
+                    <td>BUY</td>
+                    <td>userId,stockSymbol,amount</td>
+                    <td>Buy the dollar amount of the stock for the specified user at the current price.</td>
+                    <td>The user's account must be greater or equal to the amount of the purchase.</td>
+                    <td>The user is asked to confirm or cancel the transaction</td>
+                    <td>BUY,jsmith,ABC,200.00</td>
+                </tr>
+
+                <tr>
+                    <td>COMMIT_BUY</td>
+                    <td>userId</td>
+                    <td>Commits the most recently executed BUY command</td>
+                    <td>The user must have executed a BUY command within the previous 60 seconds</td>
+                    <td>(a) the user's cash account is decreased by the amount user to purchase the stock (b) the
+                        user's account for the given stock is increased by the purchase amount</td>
+                    <td>COMMIT_BUY,jsmith</td>
+                </tr>
+
+                <tr>
+                    <td>CANCEL_BUY</td>
+                    <td>userId</td>
+                    <td>Cancels the most recently executed BUY Command</td>
+                    <td>The user must have executed a BUY command within the previous 60 seconds</td>
+                    <td>The last BUY command is canceled and any allocated system resources are reset and released.</td>
+                    <td>CANCEL_BUY,jsmith</td>
+                </tr>
+
+                <tr>
+                    <td>SELL</td>
+                    <td>userId,stockSymbol,amount</td>
+                    <td>Sell the specified dollar mount of the stock currently held by the specified user at the
+                        current price.</td>
+                    <td>The user's account for the given stock must be greater than or equal to the amount being sold.</td>
+                    <td>The user is asked to confirm or cancel the given transaction</td>
+                    <td>SELL,jsmith,ABC,100.00</td>
+                </tr>
+
+                <tr>
+                    <td>COMMIT_SELL</td>
+                    <td>userId</td>
+                    <td>Commits the most recently executed SELL command</td>
+                    <td>The user must have executed a SELL command within the previous 60 seconds</td>
+                    <td>(a) the user's account for the given stock is decremented by the sale amount (b) the user's
+                        cash account is increased by the sell amount</td>
+                    <td>COMMIT_SELL,jsmith</td>
+                </tr>
+
+                <tr>
+                    <td>CANCEL_SELL</td>
+                    <td>userId</td>
+                    <td>Cancels the most recently executed SELL Command</td>
+                    <td>The user must have executed a SELL command within the previous 60 seconds</td>
+                    <td>The last SELL command is canceled and any allocated system resources are reset and released.</td>
+                    <td>CANCEL_SELL,jsmith</td>
+                </tr>
+
+                <tr>
+                    <td>SET_BUY_AMOUNT</td>
+                    <td>userId,stockSymbol,amount</td>
+                    <td>Sets a defined amount of the given stock to buy when the current stock price is less than or
+                        equal to the BUY_TRIGGER</td>
+                    <td>The user's cash account must be greater than or equal to the BUY amount at the time the
+                        transaction occurs</td>
+                    <td>(a) a reserve account is created for the BUY transaction to hold the specified amount in
+                        reserve for when the transaction is triggered (b) the user's cash account is decremented by the
+                        specified amount c) when the trigger point is reached the user's stock account is updated to
+                        reflect the BUY transaction.</td>
+                    <td>SET_BUY_AMOUNT,jsmith,ABC,50.00</td>
+                </tr>
+
+                <tr>
+                    <td>CANCEL_SET_BUY</td>
+                    <td>userId,stockSymbol</td>
+                    <td>Cancels a SET_BUY command issued for the given stock</td>
+                    <td>The must have been a SET_BUY Command issued for the given stock by the user</td>
+                    <td>(a) All accounts are reset to the values they would have had had the SET_BUY Command not been
+                        issued (b) the BUY_TRIGGER for the given user and stock is also canceled.</td>
+                    <td>CANCEL_SET_BUY,jsmith,ABC</td>
+                </tr>
+
+                <tr>
+                    <td>SET_BUY_TRIGGER</td>
+                    <td>userId,stockSymbol,amount</td>
+                    <td>Sets the trigger point base on the current stock price when any SET_BUY will execute.</td>
+                    <td>The user must have specified a SET_BUY_AMOUNT prior to setting a SET_BUY_TRIGGER</td>
+                    <td>The set of the user's buy triggers is updated to include the specified trigger</td>
+                    <td>SET_BUY_TRIGGER,jsmith,ABC,20.00</td>
+                </tr>
+
+                <tr>
+                    <td>SET_SELL_AMOUNT</td>
+                    <td>userId,stockSymbol,amount</td>
+                    <td>Sets a defined amount of the specified stock to sell when the current stock price is equal or
+                        greater than the sell trigger point</td>
+                    <td>The user must have the specified amount of stock in their account for that stock.</td>
+                    <td>A trigger is initialized for this username/stock symbol combination, but is not complete until
+                        SET_SELL_TRIGGER is executed.
+                    <td>SET_SELL_AMOUNT,jsmith,ABC,550.50</td>
+                </tr>
+
+                <tr>
+                    <td>SET_SELL_TRIGGER</td>
+                    <td>userId,stockSymbol,amount</td>
+                    <td>Sets the stock price trigger point for executing any SET_SELL triggers associated with the
+                        given stock and user</td>
+                    <td>The user must have specified a SET_SELL_AMOUNT prior to setting a SET_SELL_TRIGGER</td>
+                    <td>(a) a reserve account is created for the specified amount of the given stock (b) the user
+                        account for the given stock is reduced by the max number of stocks that could be purchased and
+                        (c) the set of the user's sell triggers is updated to include the specified trigger.</td>
+                    <td>SET_SELL_TRIGGER, jsmith,ABC,120.00</td>
+                </tr>
+
+                <tr>
+                    <td>CANCEL_SET_SELL</td>
+                    <td>userId,stockSymbol</td>
+                    <td>Cancels the SET_SELL associated with the given stock and user</td>
+                    <td>The user must have had a previously set SET_SELL for the given stock</td>
+                    <td>(a) The set of the user's sell triggers is updated to remove the sell trigger associated with
+                        the specified stock (b) all user account information is reset to the values they would have
+                        been if the given SET_SELL command had not been issued</td>
+                    <td>CANCEL_SET_SELL,jsmith,ABC</td>
+                </tr>
+
+                <tr>
+                    <td>DUMPLOG</td>
+                    <td>userId,filename</td>
+                    <td>Print out the history of the users transactions to the user specified file</td>
+                    <td>none</td>
+                    <td>The history of the user's transaction are written to the specified file.</td>
+                    <td>DUMPLOG,jsmith,dumplog.txt</td>
+                </tr>
+
+                <tr>
+                    <td>DUMPLOG</td>
+                    <td>filename</td>
+                    <td>Print out to the specified file the complete set of transactions that have occurred in the
+                        system.</td>
+                    <td>Can only be executed from the supervisor (root/administrator) account.</td>
+                    <td>Places a complete log file of all transactions that have occurred in the system into the file
+                        specified by filename</td>
+                    <td>DUMPLOG,dumplog.txt</td>
+                </tr>
+
+                <tr>
+                    <td>DISPLAY_SUMMARY</td>
+                    <td>userId</td>
+                    <td>Provides a summary to the client of the given user's transaction history and the current status
+                        of their accounts as well as any set buy or sell triggers and their parameters</td>
+                    <td>none</td>
+                    <td>A summary of the given user's transaction history and the current status of their accounts as
+                        well as any set buy or sell triggers and their parameters is displayed to the user.</td>
+                    <td>DISPLAY_SUMMARY,jsmith</td>
+            </tbody>
+        </table>
+    </div>
+
+</body>
+
+</html>

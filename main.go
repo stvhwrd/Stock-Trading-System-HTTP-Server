@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -38,6 +39,7 @@ func main() {
 	// Fire up the server
 	portNumString := ":" + strconv.Itoa(serverState.httpPort)
 	http.HandleFunc("/", requestHandler)
+	http.HandleFunc("/ui", uiHandler)
 	fmt.Printf("HTTP server listening on http://localhost:%d\n", serverState.httpPort)
 	http.ListenAndServe(portNumString, nil)
 }
@@ -47,4 +49,16 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The request received:\n\n")
 	fmt.Fprintf(w, "%s\n", r.Method)
 	fmt.Fprintf(w, "%s\n", r.Body)
+}
+
+// uiHandler presents an HTML webpage for a user to manually enter commands, manage their account, etc.
+func uiHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("LOG: Received %s request to \"/ui\" endpoint\n", r.Method)
+
+	switch r.Method {
+	case "POST":
+		requestHandler(w, r)
+	case "GET":
+		http.ServeFile(w, r, "www/index.html")
+	}
 }

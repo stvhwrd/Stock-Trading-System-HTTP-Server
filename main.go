@@ -36,7 +36,7 @@ func init() {
 
 func main() {
 	// Display server state values / config
-	log.Printf("LOG: %+v\n", serverState)
+	log.Printf("LOG: Starting server with config: %+v\n", serverState)
 
 	// Using multiplexer to map endpoints to handler functions
 	mux := http.NewServeMux()
@@ -50,13 +50,10 @@ func main() {
 // commandHandler processes a JSON command and forwards it to the transaction server
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Printf("LOG: Received %s request to \"/ui\" endpoint\n", r.Method)
+	log.Printf("LOG: Received %s request to \"/\" endpoint\n", r.Method)
 
 	switch r.Method {
-	case "GET":
-		w.WriteHeader(http.StatusBadRequest)
 	case "POST":
-
 		// Read request body
 		requestBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -67,12 +64,20 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Parse and validate request
 		commandID, parameters := commonlib.GetCommandFromMessage(requestBody)
-		if validateCommandAndParameters(commandID, parameters) {
-			forwardMessageToTransactionServer(commandID, parameters)
+		validRequest := validateCommandAndParameters(commandID, parameters)
+
+		if validRequest {
+			log.Println("LOG: Forwarding request to Transaction Server")
+			// TODO: handle retries
+			_, err := forwardMessageToTransactionServer(commandID, parameters)
+			if err != nil {
+				panic(err)
+			}
 		} else {
-			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
 		}
+	default:
+		w.WriteHeader(http.StatusBadGateway)
 	}
 }
 
@@ -81,87 +86,30 @@ func uiHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("LOG: Received %s request to \"/ui\" endpoint\n", r.Method)
 
 	switch r.Method {
+	// Incoming data from UI
 	case "POST":
 		commandHandler(w, r)
+		// UI requesting HTML
 	case "GET":
 		http.ServeFile(w, r, "www/index.html")
+	default:
+		w.WriteHeader(http.StatusBadRequest)
 	}
-}
-
-// getDumplogForUser retrieves the transaction history for a specific user from the database and saves it to a logfile
-func getDumplogForUser(userid string) {
-	// TODO: Open connection to DB
-	// TODO: Query DB eg. db.Query("SELECT * FROM transactions WHERE userid = $1", userid)
-	// TODO: Write returned rows to <filename>
-	// TODO: Close connection to DB
-}
-
-// getDumplogForAll retrieves the transaction history for all users from the database and saves it to a logfile
-func getDumplogForAll() {
-	// TODO: Open connection to DB
-	// TODO: Query DB eg. db.Query("SELECT * FROM transactions)
-	// TODO: Write returned rows to <filename>
-	// TODO: Close connection to DB
 }
 
 // forwardMessageToTransactionServer forwards the received message to the Transaction Server
 func forwardMessageToTransactionServer(commandID uint8, parameters commonlib.CommandParameter) (bool, error) {
 	sendableCommand := commonlib.GetSendableCommand(commandID, parameters)
-	response, err := commonlib.SendCommand("GET", "application/json", serverState.txPort, sendableCommand)
-
 	log.Println("LOG: Sent command: ", sendableCommand)
-	log.Println("LOG: Received response: ", response)
 
+	response, err := commonlib.SendCommand("GET", "application/json", serverState.txPort, sendableCommand)
+	log.Println("LOG: Received response: ", response)
 	if err != nil {
 		log.Println("LOG: Forwarding message to Transaction Server failed with error: ", err)
 		return false, err
 	}
+
 	log.Println("LOG: Forwarding message to Transaction Server succeeded.")
-	return true, err
-}
+	return true, nil
 
-// saveToFile exports a byte array to a file on local disk
-func saveToFile(content []byte, filename string) {
-	file, err := os.Create(filename)
-	if err != nil {
-		panic(err)
-	}
-
-	defer file.Close()
-
-	bytesWritten, err := file.Write(content)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("LOG: Wrote %d bytes to logfile: %q\n", bytesWritten, filename)
-}
-
-// validateCommand ensures that the command is one of the known/valid commands and has its necessary parameters
-func validateCommandAndParameters(commandID uint8, parameters commonlib.CommandParameter) bool {
-	// TODO: Ensure all parameters pertaining to the specific command are present and valid
-
-	return true
-}
-
-// validateAmount ensures that the amount specified in command is valid
-func validateAmount(amount string) bool {
-	// TODO: Must be non-negative
-	// TODO: Must not contain non-numerical characters (including "$")
-	// TODO: Must contain two decimal places <---(Do we want to round, or reject, if <> 2 decimal places?)
-
-	return true
-}
-
-// validateUserID ensures that the user specified in command is valid
-func validateUserID(userID string) bool {
-	// TODO: Create user if not exists <--(or does the client issue a "CREATE" command?)
-
-	return true
-}
-
-// validateStockSymbol ensures that the stock symbol specified in command is valid
-func validateStockSymbol(stockSymbol string) bool {
-	// TODO: Must be 1 - 3 alphanumeric, case insensitive
-
-	return true
 }

@@ -49,14 +49,19 @@ func main() {
 
 // commandHandler processes a JSON command and forwards it to the transaction server
 func commandHandler(w http.ResponseWriter, r *http.Request) {
-
-	log.Printf("LOG: Received %s request to \"/\" endpoint\n", r.Method)
+	log.Printf("LOG: Received %s request to %q endpoint\n", r.Method, r.URL.Path)
 
 	switch r.Method {
+	case "GET":
+		log.Printf("LOG: GET request to %q not allowed\n", r.URL.Path)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	case "POST":
+
 		// Read request body
 		requestBody, err := ioutil.ReadAll(r.Body)
 		if err != nil {
+			// TODO: handle retries
+			log.Println("LOG: Error reading request body")
 			w.WriteHeader(http.StatusBadRequest)
 			panic(err)
 		}
@@ -69,47 +74,116 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		if validRequest {
 			log.Println("LOG: Forwarding request to Transaction Server")
 			// TODO: handle retries
-			_, err := forwardMessageToTransactionServer(commandID, parameters)
+			err := forwardMessageToTransactionServer(commandID, parameters)
 			if err != nil {
+				log.Println("LOG: Error while forwarding request to Transaction Server")
 				panic(err)
 			}
 		} else {
+			log.Println("LOG: Invalid request -- ignore and discard")
 			w.WriteHeader(http.StatusBadRequest)
 		}
 	default:
-		w.WriteHeader(http.StatusBadGateway)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
 // uiHandler presents an HTML webpage for a user to manually enter commands, manage their account, etc.
 func uiHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("LOG: Received %s request to \"/ui\" endpoint\n", r.Method)
+	log.Printf("LOG: Received %s request to %q endpoint\n", r.Method, r.URL.Path)
 
 	switch r.Method {
 	// Incoming data from UI
 	case "POST":
+		log.Println("LOG: Routing POST request to commandHandler")
 		commandHandler(w, r)
-		// UI requesting HTML
+	// UI requesting HTML
 	case "GET":
-		http.ServeFile(w, r, "www/index.html")
+		html := "www/index.html"
+		log.Printf("LOG: Serving %q\n", html)
+		http.ServeFile(w, r, html)
 	default:
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-// forwardMessageToTransactionServer forwards the received message to the Transaction Server
-func forwardMessageToTransactionServer(commandID uint8, parameters commonlib.CommandParameter) (bool, error) {
+// forwardMessageToTransactionServer forwards the received message to the Transaction Server and returns the error
+func forwardMessageToTransactionServer(commandID uint8, parameters commonlib.CommandParameter) error {
 	sendableCommand := commonlib.GetSendableCommand(commandID, parameters)
-	log.Println("LOG: Sent command: ", sendableCommand)
+	log.Println("LOG: Sent command to Transaction Server: ", sendableCommand)
 
-	response, err := commonlib.SendCommand("GET", "application/json", serverState.txPort, sendableCommand)
-	log.Println("LOG: Received response: ", response)
-	if err != nil {
-		log.Println("LOG: Forwarding message to Transaction Server failed with error: ", err)
-		return false, err
-	}
-
-	log.Println("LOG: Forwarding message to Transaction Server succeeded.")
-	return true, nil
-
+	response, err := commonlib.SendCommand("GET", "text/plain", serverState.txPort, sendableCommand)
+	log.Println("LOG: Received response from Transaction server: ", response)
+	return err
 }
+
+// HACK: copied functions from other files to duck "undefined" error
+
+// Begin log_export.go
+
+// getDumplogForUser retrieves the transaction history for a specific user from the database and saves it to a logfile
+func getDumplogForUser(userid string) {
+	// TODO: Open connection to DB
+	// TODO: Query DB eg. db.Query("SELECT * FROM transactions WHERE userid = $1", userid)
+	// TODO: Write returned rows to <filename>
+	// TODO: Close connection to DB
+}
+
+// getDumplogForAll retrieves the transaction history for all users from the database and saves it to a logfile
+func getDumplogForAll() {
+	// TODO: Open connection to DB
+	// TODO: Query DB eg. db.Query("SELECT * FROM transactions)
+	// TODO: Write returned rows to <filename>
+	// TODO: Close connection to DB
+}
+
+// saveToFile exports a byte array to a file on local disk
+func saveToFile(content []byte, filename string) {
+	file, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	bytesWritten, err := file.Write(content)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("LOG: Wrote %d bytes to logfile: %q\n", bytesWritten, filename)
+}
+
+// End log_export.go
+
+// Begin request_validation.go
+
+// validateCommand ensures that the command is one of the known/valid commands and has its necessary parameters
+func validateCommandAndParameters(commandID uint8, parameters commonlib.CommandParameter) bool {
+	// TODO: Ensure all parameters pertaining to the specific command are present and valid
+
+	return true
+}
+
+// validateAmount ensures that the amount specified in command is valid
+func validateAmount(amount string) bool {
+	// TODO: Must be non-negative
+	// TODO: Must not contain non-numerical characters (including "$")
+	// TODO: Must contain two decimal places <---(Do we want to round, or reject, if <> 2 decimal places?)
+
+	return true
+}
+
+// validateUserID ensures that the user specified in command is valid
+func validateUserID(userID string) bool {
+	// TODO: Create user if not exists <--(or does the client issue a "CREATE" command?)
+
+	return true
+}
+
+// validateStockSymbol ensures that the stock symbol specified in command is valid
+func validateStockSymbol(stockSymbol string) bool {
+	// TODO: Must be 1 - 3 alphanumeric, case insensitive
+
+	return true
+}
+
+// End request_validation.go

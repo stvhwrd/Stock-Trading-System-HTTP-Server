@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
+	pql "github.com/lib/pq"
 )
 
 // ServerState holds information about the server's state and configuration
@@ -124,6 +125,7 @@ func forwardMessageToTransactionServer(commandID uint8, parameters commonlib.Com
 // getDumplogForUser retrieves the transaction history for a specific user from the database and saves it to a logfile
 func getDumplogForUser(userid string) {
 	// TODO: Open connection to DB
+	dbConnection := pql.ListenerEventConnected
 	// TODO: Query DB eg. db.Query("SELECT * FROM transactions WHERE userid = $1", userid)
 	// TODO: Write returned rows to <filename>
 	// TODO: Close connection to DB

@@ -13,22 +13,24 @@ import (
 
 // ServerState holds information about the server's state and configuration
 type ServerState struct {
-	dbPort   int
-	txPort   int
-	httpPort int
+	accountDbPort int
+	loggingDbPort int
+	txPort        int
+	httpPort      int
 }
 
 var serverState = ServerState{}
 
 func init() {
 	// Parse and process CLI flags
-	flag.IntVar(&serverState.dbPort, "dbport", -1, "[REQUIRED] the port on which the DATABASE server is running, eg. --dbport=8080")
+	flag.IntVar(&serverState.accountDbPort, "accountdbport", -1, "[REQUIRED] the port on which the USER ACCOUNT DATABASE server is running, eg. --accountdbport=8080")
+	flag.IntVar(&serverState.accountDbPort, "loggingdbport", -1, "[REQUIRED] the port on which the LOGGING DATABASE server is running, eg. --loggingdbport=8081")
 	flag.IntVar(&serverState.httpPort, "httpport", 80, "[optional -- default is port 80] the port on which *this* HTTP server is running, eg. --httpport=80")
 	flag.IntVar(&serverState.txPort, "txport", -1, "[REQUIRED] the port on which the TRANSACTION server is running, eg. --txport=8082")
 	flag.Parse()
 
 	// Enforce required flags
-	if serverState.dbPort == -1 || serverState.txPort == -1 {
+	if serverState.accountDbPort == -1 || serverState.txPort == -1 || serverState.loggingDbPort == -1 {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -90,6 +92,7 @@ func uiHandler(w http.ResponseWriter, r *http.Request) {
 
 // getDumplogForUser retrieves the transaction history for a specific user from the database and saves it to a logfile
 func getDumplogForUser(userid string) {
+
 	// TODO: Open connection to DB
 	// TODO: Query DB eg. db.Query("SELECT * FROM transactions WHERE userid = $1", userid)
 	// TODO: Write returned rows to <filename>

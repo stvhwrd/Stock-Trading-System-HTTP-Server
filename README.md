@@ -52,7 +52,7 @@ The HTTP server will listen on localhost's port 80 by default, but this can also
 
 * `httpPort` -- [optional] the port on which *this* HTTP server is running
     
-    - eg. --httpport=80")
+    - eg. `--httpport=80`
 
 
 ### Example

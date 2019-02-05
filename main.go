@@ -2,36 +2,47 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
-// serverConfig holds information about the server's state and configuration
-type serverState struct {
-	databasePort          int
-	loggingPort           int
-	transactionServerPort int
-	httpServerPort        int
+// ServerConfiguration holds information about a server's network configuration
+type ServerConfiguration struct {
+	ipAddress string
+	port      string
 }
 
-var serverConfig = serverState{}
+// ServerConfigurations holds information about the system's servers' network configuration
+type ServerConfigurations struct {
+	database    ServerConfiguration
+	logging     ServerConfiguration
+	transaction ServerConfiguration
+	web         ServerConfiguration
+}
+
+var serverConfig = ServerConfigurations{}
 
 func init() {
-	// Parse and process CLI flags (type is implicit)
-	flag.IntVar(&serverConfig.databasePort, "dbport", -1, "[REQUIRED] the port on which the USER ACCOUNT DATABASE server is running, eg. -dbport=8080")
-	flag.IntVar(&serverConfig.loggingPort, "logport", -1, "[REQUIRED] the port on which the LOGGING DATABASE server is running, eg. -logport=8081")
-	flag.IntVar(&serverConfig.httpServerPort, "httpport", 80, "[optional] the port on which *this* HTTP server is running, eg. -httpport=80")
-	flag.IntVar(&serverConfig.transactionServerPort, "txport", -1, "[REQUIRED] the port on which the TRANSACTION server is running, eg. -txport=8082")
-	flag.Parse()
+	configurationFilename := ".env"
 
-	// Enforce required flags
-	if serverConfig.databasePort == -1 || serverConfig.transactionServerPort == -1 || serverConfig.loggingPort == -1 {
-		flag.PrintDefaults()
-		log.Fatal("Flags not provided at runtime")
+	// Parse and process environment variables from config file
+	err := godotenv.Load(configurationFilename)
+	if err != nil {
+		log.Fatalf("Error loading %q config file", configurationFilename)
 	}
+
+	serverConfig.database.ipAddress = os.Getenv("DATABASE_IP_ADDRESS")
+	serverConfig.database.port = os.Getenv("DATABASE_PORT")
+	serverConfig.logging.ipAddress = os.Getenv("LOGGING_IP_ADDRESS")
+	serverConfig.logging.port = os.Getenv("LOGGING_PORT")
+	serverConfig.transaction.ipAddress = os.Getenv("TRANSACTION_IP_ADDRESS")
+	serverConfig.transaction.port = os.Getenv("TRANSACTION_PORT")
+	serverConfig.web.ipAddress = os.Getenv("WEB_IP_ADDRESS")
+	serverConfig.web.port = os.Getenv("WEB_PORT")
 }
 
 func main() {
@@ -40,8 +51,8 @@ func main() {
 	http.HandleFunc("/", requestRouter)
 
 	// Fire up server
-	log.Printf("HTTP server listening on http://localhost:%d/\n", serverConfig.httpServerPort)
-	go log.Fatal(http.ListenAndServe(":"+strconv.Itoa(serverConfig.httpServerPort), nil))
+	log.Printf("HTTP server listening on http://%s:%s/\n", serverConfig.web.ipAddress, serverConfig.web.port)
+	go log.Fatal(http.ListenAndServe(":"+serverConfig.web.port, nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
@@ -50,6 +61,7 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
+		// POST requests come from UI and/or workload generator
 		log.Println("Routing POST request to commandHandler")
 		commandHandler(w, r)
 		// GET requests are only expected from UI
@@ -78,22 +90,22 @@ var requestBodyJSON = ExpectedJSON{}
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handling JSON body of %s request", r.Method)
 
-	requestBody, readError := ioutil.ReadAll(r.Body)
-	if readError != nil {
+	requestBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Panic(readError)
+		log.Panic(err)
 	}
 	defer r.Body.Close()
 
-	unmarshalError := json.Unmarshal(requestBody, &requestBodyJSON)
-	if unmarshalError != nil {
+	err = json.Unmarshal(requestBody, &requestBodyJSON)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		log.Panic(unmarshalError)
+		log.Panic(err)
 	}
 
 	log.Printf("Message received was: %+v", requestBodyJSON)
 	// Parse and validate request
-	// Call appropriate function based
+	// Call appropriate function based on parameter type
 }
 
 // userInterfaceHandler serves the user interface HTML file

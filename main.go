@@ -1,165 +1,103 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-
-	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
 
-// ServerState holds information about the server's state and configuration
-type ServerState struct {
-	accountDbPort int
-	loggingDbPort int
-	txPort        int
-	httpPort      int
+// serverConfig holds information about the server's state and configuration
+type serverState struct {
+	databasePort          int
+	loggingPort           int
+	transactionServerPort int
+	httpServerPort        int
 }
 
-var serverState = ServerState{}
+var serverConfig = serverState{}
 
 func init() {
-	// Parse and process CLI flags (type checking is implicit)
-	flag.IntVar(&serverState.accountDbPort, "accountdbport", -1, "[REQUIRED] the port on which the USER ACCOUNT DATABASE server is running, eg. --accountdbport=8080")
-	flag.IntVar(&serverState.loggingDbPort, "loggingdbport", -1, "[REQUIRED] the port on which the LOGGING DATABASE server is running, eg. --loggingdbport=8081")
-	flag.IntVar(&serverState.httpPort, "httpport", 80, "[optional -- default is port 80] the port on which *this* HTTP server is running, eg. --httpport=80")
-	flag.IntVar(&serverState.txPort, "txport", -1, "[REQUIRED] the port on which the TRANSACTION server is running, eg. --txport=8082")
+	// Parse and process CLI flags (type is implicit)
+	flag.IntVar(&serverConfig.databasePort, "dbport", -1, "[REQUIRED] the port on which the USER ACCOUNT DATABASE server is running, eg. -dbport=8080")
+	flag.IntVar(&serverConfig.loggingPort, "logport", -1, "[REQUIRED] the port on which the LOGGING DATABASE server is running, eg. -logport=8081")
+	flag.IntVar(&serverConfig.httpServerPort, "httpport", 80, "[optional] the port on which *this* HTTP server is running, eg. -httpport=80")
+	flag.IntVar(&serverConfig.transactionServerPort, "txport", -1, "[REQUIRED] the port on which the TRANSACTION server is running, eg. -txport=8082")
 	flag.Parse()
 
 	// Enforce required flags
-	if serverState.accountDbPort == -1 || serverState.txPort == -1 || serverState.loggingDbPort == -1 {
+	if serverConfig.databasePort == -1 || serverConfig.transactionServerPort == -1 || serverConfig.loggingPort == -1 {
 		flag.PrintDefaults()
-		os.Exit(1)
+		log.Fatal("Flags not provided at runtime")
 	}
 }
 
 func main() {
-	log.Printf("LOG: Server starting with config: %+v\n", serverState)
+	log.Printf("Server starting with config: %+v\n", serverConfig)
+	// router.HandleFunc("/create", CreateEndpoint).Methods("GET")
+	http.HandleFunc("/", requestRouter)
 
 	// Fire up server
-	log.Printf("LOG: HTTP server listening on http://localhost:%d/\n", serverState.httpPort)
-	http.HandleFunc("/", requestRouter)
-	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(serverState.httpPort), nil))
+	log.Printf("HTTP server listening on http://localhost:%d/\n", serverConfig.httpServerPort)
+	go log.Fatal(http.ListenAndServe(":"+strconv.Itoa(serverConfig.httpServerPort), nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
 func requestRouter(w http.ResponseWriter, r *http.Request) {
-	log.Printf("LOG: Received %s request.\n", r.Method)
+	log.Printf("Received %s request\n", r.Method)
+
 	switch r.Method {
-	case "POST":
-		commandProcessor(w, r)
-	case "GET":
+	case http.MethodPost:
+		log.Println("Routing POST request to commandHandler")
+		commandHandler(w, r)
+		// GET requests are only expected from UI
+	case http.MethodGet:
+		log.Println("Routing GET request to userInterfaceHandler")
 		userInterfaceHandler(w, r)
 	default:
+		// No other HTTP methods are supported
+		log.Printf("HTTP method %q not supported\n", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-// commandProcessor processes a JSON command and forwards it to the transaction server
-func commandProcessor(w http.ResponseWriter, r *http.Request) {
-	// Read request body
-	requestBody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+// ExpectedJSON represents the expected JSON body of a request
+type ExpectedJSON struct {
+	Command     string `json: "command"`
+	UserID      string `json: "userID"`
+	Amount      string `json: "amount"`
+	StockSymbol string `json: "stockSymbol"`
+	Filename    string `json: "filename"`
+}
+
+var requestBodyJSON = ExpectedJSON{}
+
+// commandHandler processes a JSON command and forwards it to the transaction server
+func commandHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Handling JSON body of %s request", r.Method)
+
+	requestBody, readError := ioutil.ReadAll(r.Body)
+	if readError != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		panic(err)
+		log.Panic(readError)
 	}
 	defer r.Body.Close()
 
-	// Parse and validate request
-	commandID, parameters := commonlib.GetCommandFromMessage(requestBody)
-
-	if validateCommandAndParameters(commandID, parameters) {
-		// TODO: Check return value and handle retries
-		forwardCommandToTransactionServer(commandID, parameters)
-		w.WriteHeader(http.StatusOK)
-	} else {
-		// TODO: Handle failed validations manually
+	unmarshalError := json.Unmarshal(requestBody, &requestBodyJSON)
+	if unmarshalError != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		log.Panic(unmarshalError)
 	}
+
+	log.Printf("Message received was: %+v", requestBodyJSON)
+	// Parse and validate request
+	// Call appropriate function based
 }
 
 // userInterfaceHandler serves the user interface HTML file
 func userInterfaceHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Serving user interface")
 	http.ServeFile(w, r, "www/index.html")
-}
-
-// forwardCommandToTransactionServer forwards the received message to the Transaction Server
-func forwardCommandToTransactionServer(commandID uint8, parameters commonlib.CommandParameter) (bool, error) {
-	sendableCommand := commonlib.GetSendableCommand(commandID, parameters)
-	response, err := commonlib.SendCommand("GET", "application/json", serverState.txPort, sendableCommand)
-
-	log.Println("LOG: Sent command: ", sendableCommand)
-	log.Println("LOG: Received response: ", response)
-
-	if err != nil {
-		log.Println("LOG: Forwarding message to Transaction Server failed with error: ", err)
-		return false, err
-	}
-	log.Println("LOG: Forwarding message to Transaction Server succeeded.")
-	return true, err
-}
-
-// saveToFile exports a byte array to a file on local disk
-func saveToFile(content []byte, filename string) {
-	file, err := os.Create(filename)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	bytesWritten, err := file.Write(content)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("LOG: Wrote %d bytes to logfile: %q\n", bytesWritten, filename)
-}
-
-// validateCommand ensures that the command is one of the known/valid commands and has its necessary parameters
-func validateCommandAndParameters(commandID uint8, parameters commonlib.CommandParameter) bool {
-	// TODO: Ensure all parameters pertaining to the specific command are present and valid
-
-	return true
-}
-
-// validateAmount ensures that the amount specified in command is valid
-func validateAmount(amount string) bool {
-	// TODO: Must be non-negative
-	// TODO: Must not contain non-numerical characters (including "$")
-	// TODO: Must contain two decimal places <---(Do we want to round, or reject, if <> 2 decimal places?)
-
-	return true
-}
-
-// validateUserID ensures that the user specified in command is valid
-func validateUserID(userID string) bool {
-	// TODO: Create user if not exists <--(or does the client issue a "CREATE" command?)
-
-	return true
-}
-
-// validateStockSymbol ensures that the stock symbol specified in command is valid
-func validateStockSymbol(stockSymbol string) bool {
-	// TODO: Must be 1 - 3 alphanumeric, case insensitive
-
-	return true
-}
-
-// getDumplogForUser retrieves the transaction history for a specific user from the database and saves it to a logfile
-func getDumplogForUser(userid string) {
-
-	// TODO: Open connection to DB
-	// TODO: Query DB eg. db.Query("SELECT * FROM transactions WHERE userid = $1", userid)
-	// TODO: Write returned rows to <filename>
-	// TODO: Close connection to DB
-}
-
-// getDumplogForAll retrieves the transaction history for all users from the database and saves it to a logfile
-func getDumplogForAll() {
-	// TODO: Open connection to DB
-	// TODO: Query DB eg. db.Query("SELECT * FROM transactions)
-	// TODO: Write returned rows to <filename>
-	// TODO: Close connection to DB
 }

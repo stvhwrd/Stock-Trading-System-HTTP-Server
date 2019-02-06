@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+SENG-468-HTTP-Server
+HTTP-Server
 
 # Test binary, build with `go test -c`
 *.test

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/kurtd5105/SENG-468-Common-Lib"
 )
@@ -67,10 +68,10 @@ func sendMessage(destinationIP string, destinationPort int, originalCommand stri
 	log.Printf("\tCOMMAND: %s (#%d)\n", originalCommand, commandID)
 	log.Printf("\tPARAMETERS: %+v\n\n", parameters)
 
-	response, err := commonlib.SendCommand("POST", "application/json", destinationPort, commonlib.GetSendableCommand(uint8(commandID), parameters))
+	response, err := commonlib.SendCommand("POST", "application/json", destinationIP+":"+strconv.Itoa(destinationPort), commonlib.GetSendableCommand(uint8(commandID), parameters))
 	if err != nil {
 		log.Panic("-- Error sending command --")
 		panic(err)
 	}
-	log.Printf("Received response: \n%s", response)
+	log.Printf("Received response:\n%s\n", response)
 }

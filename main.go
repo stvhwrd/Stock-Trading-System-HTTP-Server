@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -13,10 +14,10 @@ import (
 // ServerConfiguration holds information about a server's network configuration
 type ServerConfiguration struct {
 	ipAddress string
-	port      string
+	port      int
 }
 
-// ServerConfigurations holds information about the system's servers' network configuration
+// ServerConfigurations holds information about the system's servers' network configurations
 type ServerConfigurations struct {
 	database    ServerConfiguration
 	logging     ServerConfiguration
@@ -27,22 +28,22 @@ type ServerConfigurations struct {
 var serverConfig = ServerConfigurations{}
 
 func init() {
+	// Parse and process environment variables from config file
 	configurationFilename := ".env"
 
-	// Parse and process environment variables from config file
 	err := godotenv.Load(configurationFilename)
 	if err != nil {
 		log.Fatalf("Error loading %q config file", configurationFilename)
 	}
 
 	serverConfig.database.ipAddress = os.Getenv("DATABASE_IP_ADDRESS")
-	serverConfig.database.port = os.Getenv("DATABASE_PORT")
+	serverConfig.database.port, _ = strconv.Atoi(os.Getenv("DATABASE_PORT"))
 	serverConfig.logging.ipAddress = os.Getenv("LOGGING_IP_ADDRESS")
-	serverConfig.logging.port = os.Getenv("LOGGING_PORT")
+	serverConfig.logging.port, _ = strconv.Atoi(os.Getenv("LOGGING_PORT"))
 	serverConfig.transaction.ipAddress = os.Getenv("TRANSACTION_IP_ADDRESS")
-	serverConfig.transaction.port = os.Getenv("TRANSACTION_PORT")
+	serverConfig.transaction.port, _ = strconv.Atoi(os.Getenv("TRANSACTION_PORT"))
 	serverConfig.web.ipAddress = os.Getenv("WEB_IP_ADDRESS")
-	serverConfig.web.port = os.Getenv("WEB_PORT")
+	serverConfig.web.port, _ = strconv.Atoi(os.Getenv("WEB_PORT"))
 }
 
 func main() {
@@ -51,8 +52,8 @@ func main() {
 	http.HandleFunc("/", requestRouter)
 
 	// Fire up server
-	log.Printf("HTTP server listening on http://%s:%s/\n", serverConfig.web.ipAddress, serverConfig.web.port)
-	go log.Fatal(http.ListenAndServe(":"+serverConfig.web.port, nil))
+	log.Printf("HTTP server listening on http://%s:%d/\n", serverConfig.web.ipAddress, serverConfig.web.port)
+	go log.Fatal(http.ListenAndServe(":"+strconv.Itoa(serverConfig.web.port), nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
@@ -61,51 +62,56 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPost:
-		// POST requests come from UI and/or workload generator
+		// POST requests come from UI and/or workload generator:
 		log.Println("Routing POST request to commandHandler")
-		commandHandler(w, r)
-		// GET requests are only expected from UI
+		payload, err := getRequestPayloadAsStruct(w, r)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			log.Panic(err)
+		}
+		// TODO: Validate parameters
+		buildAndSendMessage(payload)
+	// GET requests are only expected from UI:
 	case http.MethodGet:
 		log.Println("Routing GET request to userInterfaceHandler")
 		userInterfaceHandler(w, r)
 	default:
-		// No other HTTP methods are supported
+		// No other HTTP methods are supported:
 		log.Printf("HTTP method %q not supported\n", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-// ExpectedJSON represents the expected JSON body of a request
-type ExpectedJSON struct {
+// JSONPayload represents the expected JSON body of a request
+type JSONPayload struct {
 	Command     string `json: "command"`
-	UserID      string `json: "userID"`
-	Amount      string `json: "amount"`
-	StockSymbol string `json: "stockSymbol"`
-	Filename    string `json: "filename"`
+	UserID      string `json: "userID,omitempty"`
+	Amount      string `json: "amount,omitempty"`
+	StockSymbol string `json: "stockSymbol,omitempty"`
+	Filename    string `json: "filename,omitempty"`
 }
 
-var requestBodyJSON = ExpectedJSON{}
-
-// commandHandler processes a JSON command and forwards it to the transaction server
-func commandHandler(w http.ResponseWriter, r *http.Request) {
+// requestDecoder decodes a JSON command
+func getRequestPayloadAsStruct(w http.ResponseWriter, r *http.Request) (JSONPayload, error) {
 	log.Printf("Handling JSON body of %s request", r.Method)
 
+	var requestBodyJSON = JSONPayload{}
+
+	// Read request body
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Panic(err)
+		return requestBodyJSON, err
 	}
 	defer r.Body.Close()
 
+	// Unmarshal JSON directly into JSONPayload struct
 	err = json.Unmarshal(requestBody, &requestBodyJSON)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Panic(err)
+		return requestBodyJSON, err
 	}
 
 	log.Printf("Message received was: %+v", requestBodyJSON)
-	// Parse and validate request
-	// Call appropriate function based on parameter type
+	return requestBodyJSON, nil
 }
 
 // userInterfaceHandler serves the user interface HTML file

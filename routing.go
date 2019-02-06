@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/kurtd5105/SENG-468-Common-Lib"
 )
@@ -29,7 +28,7 @@ func buildAndSendMessage(payload JSONPayload) {
 	var commandID int
 	var parameters = commonlib.CommandParameter{}
 	var destinationIP string
-	var destinationPort int
+	var destinationPort string
 
 	// HACK: this is messy but there are only three commands that need to be handled individually.
 	// DUMPLOGs go to the logging server,
@@ -63,12 +62,12 @@ func buildAndSendMessage(payload JSONPayload) {
 	sendMessage(destinationIP, destinationPort, payload.Command, commandID, parameters)
 }
 
-func sendMessage(destinationIP string, destinationPort int, originalCommand string, commandID int, parameters commonlib.CommandParameter) {
-	log.Printf("Sending POST request with command to %s:%d/ \n\n", destinationIP, destinationPort)
+func sendMessage(destinationIP string, destinationPort string, originalCommand string, commandID int, parameters commonlib.CommandParameter) {
+	log.Printf("Sending POST request with command to %s:%s/ \n\n", destinationIP, destinationPort)
 	log.Printf("\tCOMMAND: %s (#%d)\n", originalCommand, commandID)
 	log.Printf("\tPARAMETERS: %+v\n\n", parameters)
 
-	response, err := commonlib.SendCommand("POST", "application/json", destinationIP+":"+strconv.Itoa(destinationPort), commonlib.GetSendableCommand(uint8(commandID), parameters))
+	response, err := commonlib.SendCommand("POST", "application/json", destinationIP+":"+destinationPort, commonlib.GetSendableCommand(uint8(commandID), parameters))
 	if err != nil {
 		log.Printf("-- Error sending command --")
 		panic(err)

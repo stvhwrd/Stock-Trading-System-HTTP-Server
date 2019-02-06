@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -14,7 +13,7 @@ import (
 // ServerConfiguration holds information about a server's network configuration
 type ServerConfiguration struct {
 	ipAddress string
-	port      int
+	port      string
 }
 
 // ServerConfigurations holds information about the system's servers' network configurations
@@ -37,22 +36,22 @@ func init() {
 	}
 
 	serverConfig.database.ipAddress = os.Getenv("DATABASE_IP_ADDRESS")
-	serverConfig.database.port, _ = strconv.Atoi(os.Getenv("DATABASE_PORT"))
+	serverConfig.database.port = os.Getenv("DATABASE_PORT")
 	serverConfig.logging.ipAddress = os.Getenv("LOGGING_IP_ADDRESS")
-	serverConfig.logging.port, _ = strconv.Atoi(os.Getenv("LOGGING_PORT"))
+	serverConfig.logging.port = os.Getenv("LOGGING_PORT")
 	serverConfig.transaction.ipAddress = os.Getenv("TRANSACTION_IP_ADDRESS")
-	serverConfig.transaction.port, _ = strconv.Atoi(os.Getenv("TRANSACTION_PORT"))
+	serverConfig.transaction.port = os.Getenv("TRANSACTION_PORT")
 	serverConfig.web.ipAddress = os.Getenv("WEB_IP_ADDRESS")
-	serverConfig.web.port, _ = strconv.Atoi(os.Getenv("WEB_PORT"))
+	serverConfig.web.port = os.Getenv("WEB_PORT")
 }
 
 func main() {
 	log.Printf("Server starting with config: \n%+v\n\n", serverConfig)
-	http.HandleFunc("/", requestRouter)
 
 	// Fire up server
-	log.Printf("HTTP server listening on http://%s:%d/\n\n", serverConfig.web.ipAddress, serverConfig.web.port)
-	go log.Fatal(http.ListenAndServe(":"+strconv.Itoa(serverConfig.web.port), nil))
+	log.Printf("HTTP server listening on http://%s:%s/\n\n", serverConfig.web.ipAddress, serverConfig.web.port)
+	http.HandleFunc("/", requestRouter)
+	go log.Fatal(http.ListenAndServe(":"+serverConfig.web.port, nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method

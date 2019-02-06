@@ -16,15 +16,13 @@ var transactionCommandStringMap = map[string]int{
 	"COMMIT_BUY":       commonlib.CommitBuyCommand,
 	"COMMIT_SELL":      commonlib.CommitSellCommand,
 	"DISPLAY_SUMMARY":  commonlib.DisplaySummaryCommand,
-	"DUMPLOG":          commonlib.DumplogCommand, // TODO: handle DUMPLOGs specifically
+	"DUMPLOG":          commonlib.DumplogCommand,
 	"QUOTE":            commonlib.QuoteCommand,
 	"SELL":             commonlib.SellCommand,
 	"SET_BUY_AMOUNT":   commonlib.SetBuyAmountCommand,
 	"SET_BUY_TRIGGER":  commonlib.SetBuyTriggerCommand,
 	"SET_SELL_AMOUNT":  commonlib.SetSellAmountCommand,
 	"SET_SELL_TRIGGER": commonlib.SetSellTriggerCommand}
-
-// messageCommand and messageParameters are the command and parameters to be forwarded to the next server
 
 func buildAndSendMessage(payload JSONPayload) {
 	var commandID int
@@ -61,7 +59,6 @@ func buildAndSendMessage(payload JSONPayload) {
 		parameters.StockSymbol = payload.StockSymbol
 	}
 
-	// TODO: handle dumplog file
 	sendMessage(destinationIP, destinationPort, payload.Command, commandID, parameters)
 }
 

@@ -47,12 +47,11 @@ func init() {
 }
 
 func main() {
-	log.Printf("Server starting with config: %+v\n", serverConfig)
-	// router.HandleFunc("/create", CreateEndpoint).Methods("GET")
+	log.Printf("Server starting with config: \n%+v\n\n", serverConfig)
 	http.HandleFunc("/", requestRouter)
 
 	// Fire up server
-	log.Printf("HTTP server listening on http://%s:%d/\n", serverConfig.web.ipAddress, serverConfig.web.port)
+	log.Printf("HTTP server listening on http://%s:%d/\n\n", serverConfig.web.ipAddress, serverConfig.web.port)
 	go log.Fatal(http.ListenAndServe(":"+strconv.Itoa(serverConfig.web.port), nil))
 }
 
@@ -64,13 +63,7 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		// POST requests come from UI and/or workload generator:
 		log.Println("Routing POST request to commandHandler")
-		payload, err := getRequestPayloadAsStruct(w, r)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			log.Panic(err)
-		}
-		// TODO: Validate parameters
-		buildAndSendMessage(payload)
+		commandHandler(w, r)
 	// GET requests are only expected from UI:
 	case http.MethodGet:
 		log.Println("Routing GET request to userInterfaceHandler")
@@ -92,7 +85,7 @@ type JSONPayload struct {
 }
 
 // requestDecoder decodes a JSON command
-func getRequestPayloadAsStruct(w http.ResponseWriter, r *http.Request) (JSONPayload, error) {
+func commandHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handling JSON body of %s request", r.Method)
 
 	var requestBodyJSON = JSONPayload{}
@@ -100,18 +93,21 @@ func getRequestPayloadAsStruct(w http.ResponseWriter, r *http.Request) (JSONPayl
 	// Read request body
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return requestBodyJSON, err
+		w.WriteHeader(http.StatusBadRequest)
+		log.Panic(err)
 	}
 	defer r.Body.Close()
 
 	// Unmarshal JSON directly into JSONPayload struct
 	err = json.Unmarshal(requestBody, &requestBodyJSON)
 	if err != nil {
-		return requestBodyJSON, err
+		w.WriteHeader(http.StatusBadRequest)
+		log.Panic(err)
 	}
 
 	log.Printf("Message received was: %+v", requestBodyJSON)
-	return requestBodyJSON, nil
+	// TODO: Validate parameters
+	buildAndSendMessage(requestBodyJSON)
 }
 
 // userInterfaceHandler serves the user interface HTML file

@@ -70,7 +70,7 @@ func sendMessage(destinationIP string, destinationPort int, originalCommand stri
 
 	response, err := commonlib.SendCommand("POST", "application/json", destinationIP+":"+strconv.Itoa(destinationPort), commonlib.GetSendableCommand(uint8(commandID), parameters))
 	if err != nil {
-		log.Panic("-- Error sending command --")
+		log.Printf("-- Error sending command --")
 		panic(err)
 	}
 	log.Printf("Received response:\n%s\n", response)

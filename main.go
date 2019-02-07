@@ -2,56 +2,53 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
-// ServerConfiguration holds information about a server's network configuration
-type ServerConfiguration struct {
-	ipAddress string
-	port      string
+// ServerNetwork holds information about the system's servers' network addresses
+type ServerNetwork struct {
+	databaseServerAddressAndPort    string
+	loggingServerAddressAndPort     string
+	transactionServerAddressAndPort string
+	webServerAddress                string
+	webServerPort                   string
 }
 
-// ServerConfigurations holds information about the system's servers' network configurations
-type ServerConfigurations struct {
-	database    ServerConfiguration
-	logging     ServerConfiguration
-	transaction ServerConfiguration
-	web         ServerConfiguration
-}
-
-var serverConfig = ServerConfigurations{}
+var serverNetworkConfig = ServerNetwork{}
 
 func init() {
-	// Parse and process environment variables from config file
-	configurationFilename := ".env"
+	// Parse and process CLI flags
+	flag.StringVar(&serverNetworkConfig.databaseServerAddressAndPort, "db", "", "[REQUIRED] the IP address and port on which the USER ACCOUNT DATABASE server is running, eg. -db=localhost:8080")
+	flag.StringVar(&serverNetworkConfig.loggingServerAddressAndPort, "log", "", "[REQUIRED] the IP address and port on which the LOGGING DATABASE server is running, eg. -log=localhost:8081")
+	flag.StringVar(&serverNetworkConfig.webServerAddress, "webip", "", "[REQUIRED] the IP address on which *this* HTTP server is running, eg. -webip=localhost")
+	flag.StringVar(&serverNetworkConfig.webServerPort, "webport", "", "[REQUIRED] the IP address and port on which *this* HTTP server is running, eg. -webport=localhost:80")
+	flag.StringVar(&serverNetworkConfig.transactionServerAddressAndPort, "tx", "", "[REQUIRED] the IP address and port on which the TRANSACTION server is running, eg. -tx=localhost:8082")
+	flag.Parse()
 
-	err := godotenv.Load(configurationFilename)
-	if err != nil {
-		log.Fatalf("Error loading %q config file", configurationFilename)
+	// Enforce required flags
+	if serverNetworkConfig.databaseServerAddressAndPort == "" ||
+		serverNetworkConfig.transactionServerAddressAndPort == "" ||
+		serverNetworkConfig.loggingServerAddressAndPort == "" ||
+		serverNetworkConfig.webServerAddress == "" ||
+		serverNetworkConfig.webServerPort == "" {
+		log.Println("Error: Required flags were not provided at runtime")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
-
-	serverConfig.database.ipAddress = os.Getenv("DATABASE_IP_ADDRESS")
-	serverConfig.database.port = os.Getenv("DATABASE_PORT")
-	serverConfig.logging.ipAddress = os.Getenv("LOGGING_IP_ADDRESS")
-	serverConfig.logging.port = os.Getenv("LOGGING_PORT")
-	serverConfig.transaction.ipAddress = os.Getenv("TRANSACTION_IP_ADDRESS")
-	serverConfig.transaction.port = os.Getenv("TRANSACTION_PORT")
-	serverConfig.web.ipAddress = os.Getenv("WEB_IP_ADDRESS")
-	serverConfig.web.port = os.Getenv("WEB_PORT")
 }
 
 func main() {
-	log.Printf("Server starting with config: \n%+v\n\n", serverConfig)
+	log.Printf("Server starting with config: \n%+v\n\n", serverNetworkConfig)
 
 	// Fire up server
-	log.Printf("HTTP server listening on http://%s:%s/\n\n", serverConfig.web.ipAddress, serverConfig.web.port)
+	log.Printf("HTTP server listening on http://%s/\n\n", serverNetworkConfig.webServerAddress)
+	// commonlib.StartServer(serverNetworkConfig.webServerPort, requestRouter)
 	http.HandleFunc("/", requestRouter)
-	go log.Fatal(http.ListenAndServe(":"+serverConfig.web.port, nil))
+	go log.Fatal(http.ListenAndServe(":"+serverNetworkConfig.webServerPort, nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method

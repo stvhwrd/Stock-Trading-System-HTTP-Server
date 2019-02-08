@@ -2,56 +2,56 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
-	"github.com/joho/godotenv"
+	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
 
-// ServerConfiguration holds information about a server's network configuration
-type ServerConfiguration struct {
-	ipAddress string
-	port      string
+// ServerNetwork holds information about the system's servers' network addresses
+type ServerNetwork struct {
+	databaseServerAddressAndPort    string
+	loggingServerAddressAndPort     string
+	transactionServerAddressAndPort string
+	webServerPort                   int
 }
 
-// ServerConfigurations holds information about the system's servers' network configurations
-type ServerConfigurations struct {
-	database    ServerConfiguration
-	logging     ServerConfiguration
-	transaction ServerConfiguration
-	web         ServerConfiguration
-}
-
-var serverConfig = ServerConfigurations{}
+var state = ServerNetwork{}
 
 func init() {
-	// Parse and process environment variables from config file
-	configurationFilename := ".env"
+	// Parse and process CLI flags
+	flag.StringVar(&state.databaseServerAddressAndPort, "db", "", "[REQUIRED] the IP address and port on which the USER ACCOUNT DATABASE server is running, eg. -db=localhost:8080")
+	flag.StringVar(&state.loggingServerAddressAndPort, "log", "", "[REQUIRED] the IP address and port on which the LOGGING DATABASE server is running, eg. -log=localhost:8081")
+	flag.IntVar(&state.webServerPort, "port", -1, "[REQUIRED] the port on which *this* HTTP server is running, eg. -port=localhost:80")
+	flag.StringVar(&state.transactionServerAddressAndPort, "tx", "", "[REQUIRED] the IP address and port on which the TRANSACTION server is running, eg. -tx=localhost:8082")
+	flag.Parse()
 
-	err := godotenv.Load(configurationFilename)
-	if err != nil {
-		log.Fatalf("Error loading %q config file", configurationFilename)
+	// Enforce required flags
+	if state.databaseServerAddressAndPort == "" ||
+		state.transactionServerAddressAndPort == "" ||
+		state.loggingServerAddressAndPort == "" ||
+		state.webServerPort < 0 {
+		log.Println("Error: Required flags were not provided at runtime")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
-
-	serverConfig.database.ipAddress = os.Getenv("DATABASE_IP_ADDRESS")
-	serverConfig.database.port = os.Getenv("DATABASE_PORT")
-	serverConfig.logging.ipAddress = os.Getenv("LOGGING_IP_ADDRESS")
-	serverConfig.logging.port = os.Getenv("LOGGING_PORT")
-	serverConfig.transaction.ipAddress = os.Getenv("TRANSACTION_IP_ADDRESS")
-	serverConfig.transaction.port = os.Getenv("TRANSACTION_PORT")
-	serverConfig.web.ipAddress = os.Getenv("WEB_IP_ADDRESS")
-	serverConfig.web.port = os.Getenv("WEB_PORT")
 }
 
 func main() {
-	log.Printf("Server starting with config: \n%+v\n\n", serverConfig)
+	log.Printf("Server starting with config: \n%+v\n\n", state)
+
+	portString := strconv.Itoa(state.webServerPort)
 
 	// Fire up server
-	log.Printf("HTTP server listening on http://%s:%s/\n\n", serverConfig.web.ipAddress, serverConfig.web.port)
+	log.Printf("HTTP server listening on http://localhost:%d/\n\n", state.webServerPort)
+
+	// TODO: figure out why commonlib.StartServer doesn't work for this
 	http.HandleFunc("/", requestRouter)
-	go log.Fatal(http.ListenAndServe(":"+serverConfig.web.port, nil))
+	go log.Fatal(http.ListenAndServe(":"+portString, nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
@@ -83,7 +83,7 @@ type JSONPayload struct {
 	Filename    string `json: "filename,omitempty"`
 }
 
-// requestDecoder decodes a JSON command
+// requestDecoder decodes a JSON command and forwards it appropriately
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handling JSON body of %s request", r.Method)
 
@@ -93,6 +93,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Error reading request body"))
 		log.Panic(err)
 	}
 	defer r.Body.Close()
@@ -101,12 +102,33 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(requestBody, &requestBodyJSON)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Error unmarshaling request body"))
 		log.Panic(err)
 	}
 
 	log.Printf("Message received was: %+v", requestBodyJSON)
-	// TODO: Validate parameters
-	buildAndSendMessage(requestBodyJSON)
+
+	// TODO: Use commonlib full implementation of building message
+	commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
+	parameters := commonlib.CommandParameter{}
+
+	parameters.UserID = requestBodyJSON.UserID
+	parameters.Amount = requestBodyJSON.Amount
+	parameters.Filename = requestBodyJSON.Filename
+	parameters.StockSymbol = requestBodyJSON.StockSymbol
+
+	destinationServer := getDestinationServer(commandID)
+
+	log.Printf("Sending POST request with command to %s/ \n\n", destinationServer)
+	log.Printf("\tCOMMAND: %s (#%d)\n", requestBodyJSON.Command, commandID)
+	log.Printf("\tPARAMETERS: %+v\n", parameters)
+
+	response, err := commonlib.SendCommand("POST", "application/json", destinationServer, commonlib.GetSendableCommand(commandID, parameters))
+	if err != nil {
+		log.Printf("-- Error sending command --")
+		panic(err)
+	}
+	log.Printf("Received response:\n%s\n", response)
 }
 
 // userInterfaceHandler serves the user interface HTML file

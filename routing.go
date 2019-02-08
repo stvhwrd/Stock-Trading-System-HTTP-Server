@@ -24,7 +24,7 @@ func getCommandID(command string, userID string) uint8 {
 		"SET_SELL_TRIGGER": commonlib.SetSellTriggerCommand}
 
 	if command == "DUMPLOG" {
-		if userID == "" {
+		if userID != "" {
 			return commonlib.DumplogCommand
 		}
 		return commonlib.DumplogAllCommand

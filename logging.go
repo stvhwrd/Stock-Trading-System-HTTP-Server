@@ -13,8 +13,9 @@ import (
 func buildLogDebug() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds, DebugMessage
+
 	logParameters := commonlib.LogCommandParameter{
-		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
+		Timestamp:      getUnixTimestampAsString(),
 		Server:         "Web",
 		TransactionNum: "0001",
 		Command:        "QUOTE",
@@ -31,7 +32,7 @@ func buildLogErrorEvent() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds, ErrorMessage
 	logParameters := commonlib.LogCommandParameter{
-		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
+		Timestamp:      getUnixTimestampAsString(),
 		Server:         "Web",
 		TransactionNum: "0002",
 		Command:        "SET_BUY_TRIGGER",
@@ -48,7 +49,7 @@ func buildLogSystemEvent() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds
 	logParameters := commonlib.LogCommandParameter{
-		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
+		Timestamp:      getUnixTimestampAsString(),
 		Server:         "Web",
 		TransactionNum: "0003",
 		Command:        "DUMPLOG",
@@ -65,7 +66,7 @@ func buildLogUserCommand() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds
 	logParameters := commonlib.LogCommandParameter{
-		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
+		Timestamp:      getUnixTimestampAsString(),
 		Server:         "Web",
 		TransactionNum: "0004",
 		Command:        "SELL",
@@ -89,4 +90,22 @@ func sendLog(logCommandID uint8, logParameters commonlib.LogCommandParameter) {
 	}
 
 	fmt.Printf(replyBody)
+}
+
+// getUnixTimestampAsString returns a string representing the number of milliseconds (UTC) since the UNIX epoch
+func getUnixTimestampAsString() string {
+	timeNano := time.Now().UTC().UnixNano() // debugging
+	fmt.Printf("timeNano:  %d\n", timeNano)
+
+	ratio := int64(time.Nanosecond / time.Millisecond) // debugging
+	fmt.Printf("ratio:  %d\n", ratio)
+
+	convertedTime := timeNano * ratio // debugging
+	fmt.Printf("convertedTime:  %d\n", convertedTime)
+
+	timeString := strconv.FormatInt(convertedTime, 10) // debugging
+	fmt.Printf("timeString:  %s\n", timeString)
+
+	// return timeString
+	return "1546300800780" // debugging
 }

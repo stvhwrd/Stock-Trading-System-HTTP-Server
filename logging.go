@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -10,16 +11,22 @@ import (
 
 // DebugType contains all the information of user commands, in
 // addition to an optional debug message
-func buildLogDebug() (uint8, commonlib.LogCommandParameter) {
+func buildLogDebug(logParameters commonlib.LogCommandParameter) (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds, DebugMessage
 
-	logParameters := commonlib.LogCommandParameter{
-		Timestamp:      getUnixTimestampAsString(),
-		Server:         "Web",
-		TransactionNum: "0001",
-		Command:        "QUOTE",
-	}
+	log.Println(logParameters.DebugMessage)
+
+	logParameters.Timestamp = getUnixTimestampAsString()
+	logParameters.Server = "Web"
+
+	// logParameters := commonlib.LogCommandParameter{
+	// 	Timestamp:      getUnixTimestampAsString(),
+	// 	Server:         "Web",
+	// 	TransactionNum: "0001",
+	// 	Command:        "QUOTE",
+	// 	DebugMessage:   debugMessage,
+	// }
 
 	commandID := uint8(commonlib.DebugType)
 
@@ -31,6 +38,7 @@ func buildLogDebug() (uint8, commonlib.LogCommandParameter) {
 func buildLogErrorEvent() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds, ErrorMessage
+
 	logParameters := commonlib.LogCommandParameter{
 		Timestamp:      getUnixTimestampAsString(),
 		Server:         "Web",

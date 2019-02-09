@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -48,6 +49,10 @@ func main() {
 
 	// Fire up server
 	log.Printf("HTTP server listening on http://localhost:%d/\n\n", state.webServerPort)
+	sendLog(buildLogDebug(commonlib.LogCommandParameter{
+		// 	TransactionNum: "0001",
+		// 	Command:        "QUOTE",
+		DebugMessage: "HTTP server listening on http://localhost:" + string(state.webServerPort)}))
 
 	// TODO: figure out why commonlib.StartServer doesn't work for this
 	http.HandleFunc("/", requestRouter)
@@ -57,6 +62,10 @@ func main() {
 // requestRouter routes the request to the appropriate handler based on its HTTP method
 func requestRouter(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received %s request\n", r.Method)
+	sendLog(buildLogDebug(commonlib.LogCommandParameter{
+		// 	TransactionNum: "0001",
+		// 	Command:        "QUOTE",
+		DebugMessage: "Received %s request: " + r.Method}))
 
 	switch r.Method {
 	case http.MethodPost:
@@ -69,7 +78,10 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 		userInterfaceHandler(w, r)
 	default:
 		// No other HTTP methods are supported:
-		log.Printf("HTTP method %q not supported\n", r.Method)
+		sendLog(buildLogDebug(commonlib.LogCommandParameter{
+			// 	TransactionNum: "0001",
+			// 	Command:        "QUOTE",
+			DebugMessage: " HTTP method not supported: " + r.Method}))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
@@ -83,7 +95,7 @@ type JSONPayload struct {
 	Filename    string `json: "filename,omitempty"`
 }
 
-// requestDecoder decodes a JSON command and forwards it appropriately
+// commandHandler decodes a JSON command and forwards it appropriately
 func commandHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Handling JSON body of %s request", r.Method)
 
@@ -93,7 +105,10 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Error reading request body"))
+		sendLog(buildLogDebug(commonlib.LogCommandParameter{
+			// 	TransactionNum: "0001",
+			// 	Command:        "QUOTE",
+			DebugMessage: "Error reading request body"}))
 		log.Panic(err)
 	}
 	defer r.Body.Close()
@@ -102,11 +117,18 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(requestBody, &requestBodyJSON)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Error unmarshaling request body"))
+		w.Write([]byte(""))
+		sendLog(buildLogDebug(commonlib.LogCommandParameter{
+			// 	TransactionNum: "0001",
+			// 	Command:        "QUOTE",
+			DebugMessage: "Error unmarshaling request body"}))
 		log.Panic(err)
 	}
 
-	log.Printf("Message received was: %+v", requestBodyJSON)
+	sendLog(buildLogDebug(commonlib.LogCommandParameter{
+		// 	TransactionNum: "0001",
+		// 	Command:        "QUOTE",
+		DebugMessage: "Message received was: " + string(requestBody)}))
 
 	// TODO: Use commonlib full implementation of building message
 	commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
@@ -119,13 +141,17 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 
 	destinationServer := getDestinationServer(commandID)
 
-	log.Printf("Sending POST request with command to %s/ \n\n", destinationServer)
-	log.Printf("\tCOMMAND: %s (#%d)\n", requestBodyJSON.Command, commandID)
-	log.Printf("\tPARAMETERS: %+v\n", parameters)
+	sendLog(buildLogDebug(commonlib.LogCommandParameter{
+		// 	TransactionNum: "0001",
+		// 	Command:        "QUOTE",
+		DebugMessage: "Forwarding " + requestBodyJSON.Command + " command to " + destinationServer + " with parameters: " + fmt.Sprintf("%+v", parameters)}))
 
 	response, err := commonlib.SendCommand("POST", "application/json", destinationServer, commonlib.GetSendableCommand(commandID, parameters))
 	if err != nil {
-		log.Printf("-- Error sending command --")
+		sendLog(buildLogDebug(commonlib.LogCommandParameter{
+			// 	TransactionNum: "0001",
+			// 	Command:        "QUOTE",
+			DebugMessage: "-- Error sending command --"}))
 		panic(err)
 	}
 	log.Printf("Received response:\n%s\n", response)

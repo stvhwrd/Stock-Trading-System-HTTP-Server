@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
@@ -12,6 +14,7 @@ func buildLogDebug() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds, DebugMessage
 	logParameters := commonlib.LogCommandParameter{
+		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
 		Server:         "Web",
 		TransactionNum: "0001",
 		Command:        "QUOTE",
@@ -28,6 +31,7 @@ func buildLogErrorEvent() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds, ErrorMessage
 	logParameters := commonlib.LogCommandParameter{
+		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
 		Server:         "Web",
 		TransactionNum: "0002",
 		Command:        "SET_BUY_TRIGGER",
@@ -44,6 +48,7 @@ func buildLogSystemEvent() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds
 	logParameters := commonlib.LogCommandParameter{
+		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
 		Server:         "Web",
 		TransactionNum: "0003",
 		Command:        "DUMPLOG",
@@ -60,11 +65,10 @@ func buildLogUserCommand() (uint8, commonlib.LogCommandParameter) {
 	// Required fields: Timestamp, Server, TransactionNum, Command
 	// Optional fields: Username, StockSymbol, Filename, Funds
 	logParameters := commonlib.LogCommandParameter{
+		Timestamp:      strconv.FormatInt(time.Now().Unix(), 10),
 		Server:         "Web",
 		TransactionNum: "0004",
-		Command:        "QUOTE",
-		Username:       "debugTestUser",
-		LogStockSymbol: "NWC",
+		Command:        "SELL",
 	}
 
 	logCommandID := uint8(commonlib.UserCommandType)

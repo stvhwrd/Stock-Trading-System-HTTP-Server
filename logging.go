@@ -6,18 +6,11 @@ import (
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
 
-// "timestamp":** `int`  // UNIX timestamp
-// "server":** `string`  // name of server eg. "Transaction Server"
-// "transactionNum":** `int`  // enumeration of transaction
-// "command":** `string`  // one of the known commands ("BUY", "SELL" etc)
-// "username":** `string`  // **optional** alphanumeric username
-// "stockSymbol":** `string`  // **optional** three-char alphanumeric stock symbol ("NWC", "BTK")
-// "filename":** `string`  // **optional** name of file to be written to
-// "funds":** `decimal`  // **optional** dollars and cents (eg 24.99)
-// "debugMessage":** `string`  // **optional** debug message or description
-//
-// DebugType
+// DebugType contains all the information of user commands, in
+// addition to an optional debug message
 func buildLogDebug() (uint8, commonlib.LogCommandParameter) {
+	// Required fields: Timestamp, Server, TransactionNum, Command
+	// Optional fields: Username, StockSymbol, Filename, Funds, DebugMessage
 	logParameters := commonlib.LogCommandParameter{
 		Server:         "Web",
 		TransactionNum: "0001",
@@ -29,18 +22,11 @@ func buildLogDebug() (uint8, commonlib.LogCommandParameter) {
 	return commandID, logParameters
 }
 
-// "timestamp":** `int`  // UNIX timestamp
-// "server":** `string`  // name of server eg. "Transaction Server"
-// "transactionNum":** `int`  // enumeration of transaction
-// "command":** `string`  // one of the known commands ("BUY", "SELL" etc)
-// "username":** `string`  // **optional** alphanumeric username
-// "stockSymbol":** `string`  // **optional** three-char alphanumeric stock symbol ("NWC", "BTK")
-// "filename":** `string`  // **optional** name of file to be written to
-// "funds":** `decimal`  // **optional** dollars and cents (eg 24.99)
-// "errorMessage":** `string`  // **optional** error message or description
-//
-// ErrorEventType
+// ErrorEventType contains all the information of user commands, in
+// addition to an optional error message
 func buildLogErrorEvent() (uint8, commonlib.LogCommandParameter) {
+	// Required fields: Timestamp, Server, TransactionNum, Command
+	// Optional fields: Username, StockSymbol, Filename, Funds, ErrorMessage
 	logParameters := commonlib.LogCommandParameter{
 		Server:         "Web",
 		TransactionNum: "0002",
@@ -52,23 +38,15 @@ func buildLogErrorEvent() (uint8, commonlib.LogCommandParameter) {
 	return logCommandID, logParameters
 }
 
-// "timestamp":** `int`  // UNIX timestamp
-// "server":** `string`  // name of server eg. "Transaction Server"
-// "transactionNum":** `int`  // enumeration of transaction
-// "command":** `string`  // one of the known commands ("BUY", "SELL" etc)
-// "username":** `string`  // **optional** alphanumeric username
-// "stockSymbol":** `string`  // **optional** three-char alphanumeric stock symbol ("NWC", "BTK")
-// "filename":** `string`  // **optional** name of file to be written to
-// "funds":** `decimal`  // **optional** dollars and cents (eg 24.99)
-//
-// SystemEventType
+// SystemEventTypes can be current user commands, interserver communications,
+// or the execution of previously set triggers.
 func buildLogSystemEvent() (uint8, commonlib.LogCommandParameter) {
+	// Required fields: Timestamp, Server, TransactionNum, Command
+	// Optional fields: Username, StockSymbol, Filename, Funds
 	logParameters := commonlib.LogCommandParameter{
 		Server:         "Web",
 		TransactionNum: "0003",
 		Command:        "DUMPLOG",
-		Username:       "debugTestUser",
-		LogStockSymbol: "NWC",
 	}
 
 	logCommandID := uint8(commonlib.SystemEventType)
@@ -76,17 +54,11 @@ func buildLogSystemEvent() (uint8, commonlib.LogCommandParameter) {
 	return logCommandID, logParameters
 }
 
-// "timestamp":** `int`  // UNIX timestamp
-// "server":** `string`  // name of server eg. "Transaction Server"
-// "transactionNum":** `int`  // enumeration of transaction
-// "command":** `string`  // one of the known commands ("BUY", "SELL" etc)
-// "username":** `string`  // **optional** alphanumeric username
-// "stockSymbol":** `string`  // **optional** three-char alphanumeric stock symbol ("NWC", "BTK")
-// "filename":** `string`  // **optional** name of file to be written to
-// "funds":** `decimal`  // **optional** dollars and cents (eg 24.99)
-//
-// UserCommandType
+// UserCommandType comes from the user command files via Workload Generator
+// or from manual entries in the UI
 func buildLogUserCommand() (uint8, commonlib.LogCommandParameter) {
+	// Required fields: Timestamp, Server, TransactionNum, Command
+	// Optional fields: Username, StockSymbol, Filename, Funds
 	logParameters := commonlib.LogCommandParameter{
 		Server:         "Web",
 		TransactionNum: "0004",

@@ -9,11 +9,8 @@ import (
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
 
-// buildLog builds a valid LogCommand
+// buildLog builds a valid sendableLogCommand
 func buildLog(logMessage string, logType int, logParameters commonlib.LogCommandParameter) []byte {
-
-	logParameters.Timestamp = getUnixTimestampAsString()
-	logParameters.Server = "Web"
 	var logCommandID uint8
 
 	log.Println(logMessage)
@@ -63,8 +60,8 @@ func sendLog(sendableLogCommand []byte) {
 	log.Printf(replyBody)
 }
 
-// getUnixTimestampAsString returns a string representing the number of milliseconds (UTC) since the UNIX epoch
-func getUnixTimestampAsString() string {
+// getTimeStampString returns a UTC UNIX timestamp for <now> as a string
+func getTimeStampString() string {
 	// Format required is milliseconds
 	milliseconds := time.Now().UTC().UnixNano() / int64(1000)
 	return strconv.FormatInt(milliseconds, 10)

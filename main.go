@@ -49,10 +49,11 @@ func main() {
 
 	// Fire up server
 	log.Printf("HTTP server listening on http://localhost:%d/\n\n", state.webServerPort)
-	sendLog(buildLogDebug(commonlib.LogCommandParameter{
-		// 	TransactionNum: "0001",
-		// 	Command:        "QUOTE",
-		DebugMessage: "HTTP server listening on http://localhost:" + string(state.webServerPort)}))
+	sendLog(buildLog("HTTP server listening on http://localhost:"+string(state.webServerPort),
+		commonlib.DebugType,
+		commonlib.LogCommandParameter{
+			TransactionNum: "0001",
+			Command:        "QUOTE"}))
 
 	// TODO: figure out why commonlib.StartServer doesn't work for this
 	http.HandleFunc("/", requestRouter)
@@ -62,10 +63,11 @@ func main() {
 // requestRouter routes the request to the appropriate handler based on its HTTP method
 func requestRouter(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received %s request\n", r.Method)
-	sendLog(buildLogDebug(commonlib.LogCommandParameter{
-		// 	TransactionNum: "0001",
-		// 	Command:        "QUOTE",
-		DebugMessage: "Received %s request: " + r.Method}))
+	sendLog(buildLog("Received %s request: "+r.Method,
+		commonlib.DebugType,
+		commonlib.LogCommandParameter{
+			TransactionNum: "0001",
+			Command:        "QUOTE"}))
 
 	switch r.Method {
 	case http.MethodPost:
@@ -78,10 +80,11 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 		userInterfaceHandler(w, r)
 	default:
 		// No other HTTP methods are supported:
-		sendLog(buildLogDebug(commonlib.LogCommandParameter{
-			// 	TransactionNum: "0001",
-			// 	Command:        "QUOTE",
-			DebugMessage: " HTTP method not supported: " + r.Method}))
+		sendLog(buildLog(" HTTP method not supported: "+r.Method,
+			commonlib.DebugType,
+			commonlib.LogCommandParameter{
+				TransactionNum: "0001",
+				Command:        "QUOTE"}))
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
@@ -105,11 +108,13 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		sendLog(buildLogDebug(commonlib.LogCommandParameter{
-			// 	TransactionNum: "0001",
-			// 	Command:        "QUOTE",
-			DebugMessage: "Error reading request body"}))
-		log.Panic(err)
+		sendLog(buildLog("Error reading request body",
+			commonlib.DebugType,
+			commonlib.LogCommandParameter{
+				TransactionNum: "0001",
+				Command:        "QUOTE"}))
+
+		panic(err)
 	}
 	defer r.Body.Close()
 
@@ -118,17 +123,19 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(""))
-		sendLog(buildLogDebug(commonlib.LogCommandParameter{
-			// 	TransactionNum: "0001",
-			// 	Command:        "QUOTE",
-			DebugMessage: "Error unmarshaling request body"}))
-		log.Panic(err)
+		sendLog(buildLog("Error unmarshaling request body",
+			commonlib.DebugType,
+			commonlib.LogCommandParameter{
+				TransactionNum: "0001",
+				Command:        "QUOTE"}))
+		panic(err)
 	}
 
-	sendLog(buildLogDebug(commonlib.LogCommandParameter{
-		// 	TransactionNum: "0001",
-		// 	Command:        "QUOTE",
-		DebugMessage: "Message received was: " + string(requestBody)}))
+	sendLog(buildLog("Message received was: "+string(requestBody),
+		commonlib.DebugType,
+		commonlib.LogCommandParameter{
+			TransactionNum: "0001",
+			Command:        "QUOTE"}))
 
 	// TODO: Use commonlib full implementation of building message
 	commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
@@ -141,17 +148,19 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 
 	destinationServer := getDestinationServer(commandID)
 
-	sendLog(buildLogDebug(commonlib.LogCommandParameter{
-		// 	TransactionNum: "0001",
-		// 	Command:        "QUOTE",
-		DebugMessage: "Forwarding " + requestBodyJSON.Command + " command to " + destinationServer + " with parameters: " + fmt.Sprintf("%+v", parameters)}))
+	sendLog(buildLog("Forwarding "+requestBodyJSON.Command+" command to "+destinationServer+" with parameters: "+fmt.Sprintf("%+v", parameters),
+		commonlib.DebugType,
+		commonlib.LogCommandParameter{
+			TransactionNum: "0001",
+			Command:        "QUOTE"}))
 
 	response, err := commonlib.SendCommand("POST", "application/json", destinationServer, commonlib.GetSendableCommand(commandID, parameters))
 	if err != nil {
-		sendLog(buildLogDebug(commonlib.LogCommandParameter{
-			// 	TransactionNum: "0001",
-			// 	Command:        "QUOTE",
-			DebugMessage: "-- Error sending command --"}))
+		sendLog(buildLog("Error sending command",
+			commonlib.DebugType,
+			commonlib.LogCommandParameter{
+				TransactionNum: "0001",
+				Command:        "QUOTE"}))
 		panic(err)
 	}
 	log.Printf("Received response:\n%s\n", response)

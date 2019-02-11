@@ -57,7 +57,7 @@ func main() {
 
 	// TODO: figure out why commonlib.StartServer doesn't work for this
 	http.HandleFunc("/", requestRouter)
-	go log.Fatal(http.ListenAndServe(":"+portString, nil))
+	log.Fatal(http.ListenAndServe(":"+portString, nil))
 }
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
@@ -82,7 +82,8 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 
 // JSONPayload represents the expected JSON body of a request
 type JSONPayload struct {
-	Command     string `json: "command"`
+	// Command     string `json: "command"`
+	Message     string `json: "message"` // HACK
 	UserID      string `json: "userID,omitempty"`
 	Amount      string `json: "amount,omitempty"`
 	StockSymbol string `json: "stockSymbol,omitempty"`
@@ -97,7 +98,6 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(""))
 		log.Println("Error reading request body")
 		panic(err)
 	}
@@ -109,7 +109,6 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(requestBody, &requestBodyJSON)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(""))
 		log.Println("Error unmarshaling request body")
 		panic(err)
 	}
@@ -119,7 +118,20 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	//Increment global transaction counter
 	transactionNumString := strconv.FormatUint(incrementTransactionNum(), 10)
 
-	commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
+	// HACK until API is figured out
+	message, err := strconv.ParseInt(requestBodyJSON.Message, 10, 8)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(""))
+		log.Printf("Error parsing commandID from request: %s", requestBodyJSON.Message)
+		panic(err)
+	}
+	commandID := uint8(message) // HACK
+	// commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
+
+	// Request received intact
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(""))
 
 	// Build a CommandParameter to send to Transaction Server
 	parameters := commonlib.CommandParameter{
@@ -148,8 +160,8 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	// Destination depends on type of command
 	destinationServer := getDestinationServer(commandID)
 
-	sendLog(buildLog("Forwarding "+requestBodyJSON.Command+" command to "+
-		destinationServer+" with parameters: "+fmt.Sprintf("%+v", parameters),
+	sendLog(buildLog(fmt.Sprintf("Forwarding #%s command to %s with parameters: "+"%+v",
+		requestBodyJSON.Message, destinationServer, parameters),
 		commonlib.SystemEventType,
 		loggingParameters))
 
@@ -160,6 +172,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		commonlib.GetSendableCommand(commandID, parameters))
 
 	if err != nil {
+		log.Printf("Received response from server: %s", response)
 		sendLog(buildLog(
 			fmt.Sprintf("Error sending command: %s", err.Error()),
 			commonlib.ErrorEventType,
@@ -167,7 +180,6 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	log.Printf("Received response:\n%s\n", response)
 	sendLog(buildLog(
 		"Successfully sent command to "+destinationServer,
 		commonlib.DebugType,

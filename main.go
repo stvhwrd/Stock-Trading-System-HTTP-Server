@@ -132,7 +132,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		LogStockSymbol: requestBodyJSON.StockSymbol,
 		Server:         "Web",
 		TransactionNum: strconv.FormatUint(incrementTransactionNum(), 10),
-		Timestamp:      getTimeStampString(),
+		Timestamp:      commonlib.GetTimeStampString(),
 	}
 
 	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBody),

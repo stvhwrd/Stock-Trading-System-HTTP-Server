@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"strconv"
-	"time"
 
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
@@ -58,11 +56,4 @@ func sendLog(sendableLogCommand []byte) {
 	}
 
 	log.Printf(replyBody)
-}
-
-// getTimeStampString returns a UTC UNIX timestamp for <now> as a string
-func getTimeStampString() string {
-	// Format required is milliseconds
-	milliseconds := time.Now().UTC().UnixNano() / int64(1000)
-	return strconv.FormatInt(milliseconds, 10)
 }

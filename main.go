@@ -115,14 +115,20 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Use commonlib full implementation of building message
+
+	//Increment global transaction counter
+	transactionNumString := strconv.FormatUint(incrementTransactionNum(), 10)
+
 	commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
 
 	// Build a CommandParameter to send to Transaction Server
 	parameters := commonlib.CommandParameter{
-		UserID:      requestBodyJSON.UserID,
-		Amount:      requestBodyJSON.Amount,
-		Filename:    requestBodyJSON.Filename,
-		StockSymbol: requestBodyJSON.StockSymbol}
+		UserID:         requestBodyJSON.UserID,
+		Amount:         requestBodyJSON.Amount,
+		Filename:       requestBodyJSON.Filename,
+		StockSymbol:    requestBodyJSON.StockSymbol,
+		TransactionNum: transactionNumString,
+	}
 
 	// Build a LogCommandParameter to send to Logging Server
 	loggingParameters := commonlib.LogCommandParameter{
@@ -131,8 +137,8 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		LogFilename:    requestBodyJSON.Filename,
 		LogStockSymbol: requestBodyJSON.StockSymbol,
 		Server:         "Web",
-		TransactionNum: strconv.FormatUint(incrementTransactionNum(), 10),
-		Timestamp:      getTimeStampString(),
+		TransactionNum: transactionNumString,
+		Timestamp:      commonlib.GetTimeStampString(),
 	}
 
 	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBody),

@@ -148,7 +148,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		Timestamp:      commonlib.GetTimeStampString(),
 	}
 
-	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBody),
+	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),
 		commonlib.DebugType,
 		loggingParameters))
 
@@ -167,12 +167,13 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		commonlib.GetSendableCommand(commandID, parameters))
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Error sending command: %s\n", err.Error())
+		errorMessage := fmt.Sprintf("Error sending command: %s\n\n Server response: %s\n",
+			err.Error(), response)
 		sendLog(buildLog(
 			errorMessage,
 			commonlib.ErrorEventType,
 			loggingParameters))
-		log.Fatalf("%s\n\n Server response: %s\n", errorMessage, response)
+		log.Fatalf(errorMessage)
 	}
 
 	sendLog(buildLog(

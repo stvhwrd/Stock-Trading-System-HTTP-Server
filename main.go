@@ -74,15 +74,16 @@ func requestRouter(w http.ResponseWriter, r *http.Request) {
 		log.Println("Routing GET request to userInterfaceHandler")
 		userInterfaceHandler(w, r)
 	default:
-		// No other HTTP methods are supported:
-		log.Println("HTTP method not supported: " + r.Method)
+		// No other HTTP methods are supported
+		errorMessage := fmt.Sprintf("HTTP method not supported: %s\n", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte(errorMessage))
+		log.Fatal(errorMessage)
 	}
 }
 
 // JSONPayload represents the expected JSON body of a request
 type JSONPayload struct {
-	// Command     string `json: "command"`
 	Message     string `json: "message"` // HACK
 	UserID      string `json: "userID,omitempty"`
 	Amount      string `json: "amount,omitempty"`
@@ -97,41 +98,35 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 	// Read request body
 	requestBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		errorMessage := fmt.Sprintf("Error reading request body: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		log.Println("Error reading request body")
-		panic(err)
+		w.Write([]byte(errorMessage))
+		log.Fatalln(errorMessage)
 	}
 	defer r.Body.Close()
 
 	// Unmarshal JSON directly into JSONPayload struct
 	var requestBodyJSON = JSONPayload{}
 
-	err = json.Unmarshal(requestBody, &requestBodyJSON)
-	if err != nil {
+	if err = json.Unmarshal(requestBody, &requestBodyJSON); err != nil {
+		errorMessage := fmt.Sprintf("Error unmarshaling request body: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		log.Println("Error unmarshaling request body")
-		panic(err)
+		w.Write([]byte(errorMessage))
+		log.Fatalln(errorMessage)
 	}
-
-	// TODO: Use commonlib full implementation of building message
 
 	//Increment global transaction counter
 	transactionNumString := strconv.FormatUint(incrementTransactionNum(), 10)
 
-	// HACK until API is figured out
+	// Extract commandID from message
 	message, err := strconv.ParseInt(requestBodyJSON.Message, 10, 8)
 	if err != nil {
+		errorMessage := fmt.Sprintf("Error parsing message content: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(""))
-		log.Printf("Error parsing commandID from request: %s", requestBodyJSON.Message)
-		panic(err)
+		w.Write([]byte(errorMessage))
+		log.Fatalln(errorMessage)
 	}
-	commandID := uint8(message) // HACK
-	// commandID := getCommandID(requestBodyJSON.Command, requestBodyJSON.UserID)
-
-	// Request received intact
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(""))
+	commandID := uint8(message)
 
 	// Build a CommandParameter to send to Transaction Server
 	parameters := commonlib.CommandParameter{
@@ -153,14 +148,14 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		Timestamp:      commonlib.GetTimeStampString(),
 	}
 
-	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBody),
+	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),
 		commonlib.DebugType,
 		loggingParameters))
 
 	// Destination depends on type of command
 	destinationServer := getDestinationServer(commandID)
 
-	sendLog(buildLog(fmt.Sprintf("Forwarding #%s command to %s with parameters: "+"%+v",
+	sendLog(buildLog(fmt.Sprintf("Forwarding #%s command to %s with parameters: %+v\n",
 		requestBodyJSON.Message, destinationServer, parameters),
 		commonlib.SystemEventType,
 		loggingParameters))
@@ -172,18 +167,23 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		commonlib.GetSendableCommand(commandID, parameters))
 
 	if err != nil {
-		log.Printf("Received response from server: %s", response)
+		errorMessage := fmt.Sprintf("Error sending command: %s\n\n Server response: %s\n",
+			err.Error(), response)
 		sendLog(buildLog(
-			fmt.Sprintf("Error sending command: %s", err.Error()),
+			errorMessage,
 			commonlib.ErrorEventType,
 			loggingParameters))
-		panic(err)
+		log.Fatalf(errorMessage)
 	}
 
 	sendLog(buildLog(
-		"Successfully sent command to "+destinationServer,
+		fmt.Sprintf("%s responded: %s\n", destinationServer, response),
 		commonlib.DebugType,
 		loggingParameters))
+
+	// Request received intact
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(response))
 }
 
 // userInterfaceHandler serves the user interface HTML file

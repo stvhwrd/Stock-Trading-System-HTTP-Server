@@ -146,6 +146,7 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		Server:         "Web",
 		TransactionNum: transactionNumString,
 		Timestamp:      commonlib.GetTimeStampString(),
+		Command:        commonlib.CommandNames[commandID],
 	}
 
 	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),

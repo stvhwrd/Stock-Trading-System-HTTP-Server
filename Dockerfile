@@ -1,7 +1,4 @@
-FROM golang:latest
-
-# Install commonlib when internet connected
-RUN git clone https://34c1a18a731ddfe9b3f3b3fb1dccc3ee43afc465@github.com/kurtd5105/SENG-468-Common-Lib.git ${GOPATH}/src/github.com/kurtd5105/SENG-468-Common-Lib
+FROM seng-468-common-lib
 
 # Build directories and binary
 RUN mkdir /http_server
@@ -22,9 +19,6 @@ RUN test -n "$TX_ADDRESS"
 ARG LOG_ADDRESS
 ENV LOG_ADDRESS ${LOG_ADDRESS}
 RUN test -n "$LOG_ADDRESS"
-
-# Make port 8084 available
-EXPOSE 8084
 
 # Run it
 CMD /http_server/main -port $PORT -tx $TX_ADDRESS -db $DB_ADDRESS -log $LOG_ADDRESS

@@ -48,8 +48,6 @@ func init() {
 }
 
 func main() {
-	log.Printf("Server starting with config: \n%+v\n\n", state)
-
 	portString := strconv.Itoa(state.webServerPort)
 
 	// Fire up server

@@ -45,6 +45,8 @@ func init() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
+
+	commonlib.ServerName = "http-server"
 }
 
 func main() {

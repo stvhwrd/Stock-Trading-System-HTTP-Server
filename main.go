@@ -60,16 +60,16 @@ func main() {
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
 func requestRouter(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received %s request\n", r.Method)
+	//log.Printf("Received %s request\n", r.Method)
 
 	switch r.Method {
 	case http.MethodPost:
 		// POST requests come from UI and/or workload generator:
-		log.Println("Routing POST request to commandHandler")
+		//log.Println("Routing POST request to commandHandler")
 		commandHandler(w, r)
 	// GET requests are only expected from UI:
 	case http.MethodGet:
-		log.Println("Routing GET request to userInterfaceHandler")
+		//log.Println("Routing GET request to userInterfaceHandler")
 		userInterfaceHandler(w, r)
 	default:
 		// No other HTTP methods are supported
@@ -91,7 +91,7 @@ type JSONPayload struct {
 
 // commandHandler decodes a JSON command and forwards it appropriately
 func commandHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Handling JSON body of %s request", r.Method)
+	//log.Printf("Handling JSON body of %s request", r.Method)
 
 	// Read request body
 	requestBody, err := ioutil.ReadAll(r.Body)
@@ -145,6 +145,15 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		TransactionNum: transactionNumString,
 		Timestamp:      commonlib.GetTimeStampString(),
 		Command:        commonlib.CommandNames[commandID],
+	}
+
+	if commandID == commonlib.DumplogCommand || commandID == commonlib.DumplogAllCommand {
+		fmt.Println("Sending dumplog to transaction server...")
+		commonlib.SendCommand(
+			"POST",
+			"application/json",
+			state.transactionServerAddressAndPort,
+			commonlib.GetSendableCommand(commandID, parameters))
 	}
 
 	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),

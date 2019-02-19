@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
@@ -23,6 +24,11 @@ type ServerNetwork struct {
 }
 
 var state = ServerNetwork{}
+
+func heartbeat() {
+	time.Sleep(10 * time.Second)
+	log.Println("running...")
+}
 
 func init() {
 	// Parse and process CLI flags
@@ -45,6 +51,8 @@ func init() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
+
+	go heartbeat()
 
 	commonlib.ServerName = "http-server"
 }

@@ -156,9 +156,9 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 			commonlib.GetSendableCommand(commandID, parameters))
 	}
 
-	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),
-		commonlib.DebugType,
-		loggingParameters))
+	// sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),
+	// 	commonlib.DebugType,
+	// 	loggingParameters))
 
 	// Destination depends on type of command
 	destinationServer := getDestinationServer(commandID)
@@ -184,10 +184,10 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf(errorMessage)
 	}
 
-	sendLog(buildLog(
-		fmt.Sprintf("%s responded: %s\n", destinationServer, response),
-		commonlib.DebugType,
-		loggingParameters))
+	// sendLog(buildLog(
+	// 	fmt.Sprintf("%s responded: %s\n", destinationServer, response),
+	// 	commonlib.DebugType,
+	// 	loggingParameters))
 
 	// Request received intact
 	w.WriteHeader(http.StatusOK)

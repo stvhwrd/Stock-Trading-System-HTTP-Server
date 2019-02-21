@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	commonlib "github.com/kurtd5105/SENG-468-Common-Lib"
 )
@@ -20,9 +21,17 @@ type ServerNetwork struct {
 	loggingServerAddressAndPort     string
 	transactionServerAddressAndPort string
 	webServerPort                   int
+	handled                         int
+	errors                          int
+	debugOutput                     int
 }
 
 var state = ServerNetwork{}
+
+func heartbeat() {
+	time.Sleep(30 * time.Second)
+	log.Printf("HTTP server stats - served: %d, errored: %d\n", state.handled, state.errors)
+}
 
 func init() {
 	// Parse and process CLI flags
@@ -46,6 +55,8 @@ func init() {
 		os.Exit(1)
 	}
 
+	go heartbeat()
+
 	commonlib.ServerName = "http-server"
 }
 
@@ -62,23 +73,36 @@ func main() {
 
 // requestRouter routes the request to the appropriate handler based on its HTTP method
 func requestRouter(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Received %s request\n", r.Method)
+	state.handled++
+
+	if state.debugOutput >= 2 {
+		log.Printf("Received %s request\n", r.Method)
+	}
 
 	switch r.Method {
 	case http.MethodPost:
 		// POST requests come from UI and/or workload generator:
-		log.Println("Routing POST request to commandHandler")
+		if state.debugOutput >= 2 {
+			log.Println("Routing POST request to commandHandler")
+		}
 		commandHandler(w, r)
 	// GET requests are only expected from UI:
 	case http.MethodGet:
-		log.Println("Routing GET request to userInterfaceHandler")
+		if state.debugOutput >= 2 {
+			log.Println("Routing GET request to userInterfaceHandler")
+		}
 		userInterfaceHandler(w, r)
 	default:
 		// No other HTTP methods are supported
 		errorMessage := fmt.Sprintf("HTTP method not supported: %s\n", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write([]byte(errorMessage))
-		log.Fatal(errorMessage)
+
+		if state.debugOutput >= 1 {
+			log.Fatalln(errorMessage)
+		}
+
+		state.errors++
 	}
 }
 
@@ -93,7 +117,9 @@ type JSONPayload struct {
 
 // commandHandler decodes a JSON command and forwards it appropriately
 func commandHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Handling JSON body of %s request", r.Method)
+	if state.debugOutput >= 2 {
+		log.Printf("Handling JSON body of %s request", r.Method)
+	}
 
 	// Read request body
 	requestBody, err := ioutil.ReadAll(r.Body)
@@ -101,7 +127,12 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		errorMessage := fmt.Sprintf("Error reading request body: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(errorMessage))
-		log.Fatalln(errorMessage)
+
+		if state.debugOutput >= 1 {
+			log.Fatalln(errorMessage)
+		}
+
+		state.errors++
 	}
 	defer r.Body.Close()
 
@@ -112,7 +143,12 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		errorMessage := fmt.Sprintf("Error unmarshaling request body: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(errorMessage))
-		log.Fatalln(errorMessage)
+
+		if state.debugOutput >= 1 {
+			log.Fatalln(errorMessage)
+		}
+
+		state.errors++
 	}
 
 	//Increment global transaction counter
@@ -124,7 +160,12 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		errorMessage := fmt.Sprintf("Error parsing message content: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(errorMessage))
-		log.Fatalln(errorMessage)
+
+		if state.debugOutput >= 1 {
+			log.Fatalln(errorMessage)
+		}
+
+		state.errors++
 	}
 	commandID := uint8(message)
 
@@ -149,9 +190,20 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 		Command:        commonlib.CommandNames[commandID],
 	}
 
-	sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),
-		commonlib.DebugType,
-		loggingParameters))
+	if commandID == commonlib.DumplogCommand || commandID == commonlib.DumplogAllCommand {
+		fmt.Println("Sending dumplog to transaction server...")
+		commonlib.SendCommand(
+			"POST",
+			"application/json",
+			state.transactionServerAddressAndPort,
+			commonlib.GetSendableCommand(commandID, parameters))
+	}
+
+	if state.debugOutput >= 2 {
+		sendLog(buildLog(fmt.Sprintf("Received request: %s", requestBodyJSON),
+			commonlib.DebugType,
+			loggingParameters))
+	}
 
 	// Destination depends on type of command
 	destinationServer := getDestinationServer(commandID)
@@ -174,13 +226,20 @@ func commandHandler(w http.ResponseWriter, r *http.Request) {
 			errorMessage,
 			commonlib.ErrorEventType,
 			loggingParameters))
-		log.Fatalf(errorMessage)
+
+		if state.debugOutput >= 1 {
+			log.Fatalln(errorMessage)
+		}
+
+		state.errors++
 	}
 
-	sendLog(buildLog(
-		fmt.Sprintf("%s responded: %s\n", destinationServer, response),
-		commonlib.DebugType,
-		loggingParameters))
+	if state.debugOutput >= 2 {
+		sendLog(buildLog(
+			fmt.Sprintf("%s responded: %s\n", destinationServer, response),
+			commonlib.DebugType,
+			loggingParameters))
+	}
 
 	// Request received intact
 	w.WriteHeader(http.StatusOK)

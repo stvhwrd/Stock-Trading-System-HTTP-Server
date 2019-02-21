@@ -11,7 +11,7 @@ import (
 func buildLog(logMessage string, logType int, logParameters commonlib.LogCommandParameter) []byte {
 	var logCommandID uint8
 
-	log.Println(logMessage)
+	//log.Println(logMessage)
 
 	switch logType {
 
@@ -50,10 +50,10 @@ func buildLog(logMessage string, logType int, logParameters commonlib.LogCommand
 
 // sendLog sends the given log as a message to the logging server
 func sendLog(sendableLogCommand []byte) {
-	replyBody, err := commonlib.SendCommand("POST", "application/json", state.loggingServerAddressAndPort, sendableLogCommand)
+	_, err := commonlib.SendCommand("POST", "application/json", state.loggingServerAddressAndPort, sendableLogCommand)
 	if err != nil {
 		log.Printf("Error: %s\n", err)
 	}
 
-	log.Printf(replyBody)
+	//log.Printf(replyBody)
 }
